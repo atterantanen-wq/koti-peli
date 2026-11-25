@@ -37,3 +37,16 @@ func test_colors_cycle_back_to_start() -> void:
 		main.on_tap()
 	check_eq(main.color_index, 0, "värit kiertävät alkuun")
 	main.free()
+
+
+func test_camera_sees_cube() -> void:
+	var main := _spawn_main()
+	var camera := main.get_node("Camera3D") as Camera3D
+	var cube := main.get_node("Cube") as Node3D
+	var forward := -camera.global_transform.basis.z
+	check(forward.y < 0.0, "kamera katsoo alaspäin")
+	var to_cube := (cube.global_position - camera.global_position).normalized()
+	check(forward.dot(to_cube) > 0.95, "kuutio on kameran kuvan keskellä")
+	var sun := main.get_node("Sun") as Node3D
+	check((-sun.global_transform.basis.z).y < 0.0, "aurinko paistaa ylhäältä")
+	main.free()
