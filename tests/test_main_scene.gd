@@ -6,6 +6,7 @@ func _spawn_main() -> Node:
 	var scene: PackedScene = load("res://scenes/main/main.tscn")
 	var main := scene.instantiate()
 	tree.root.add_child(main)
+	assert(main.is_node_ready(), "kohtaus ei käynnistynyt")
 	return main
 
 

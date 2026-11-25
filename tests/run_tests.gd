@@ -7,6 +7,11 @@ const TEST_DIR := "res://tests"
 
 
 func _initialize() -> void:
+	# Ajetaan vasta kun pelin puu on käynnissä, jotta kohtausten _ready() suoritetaan.
+	_run_all.call_deferred()
+
+
+func _run_all() -> void:
 	var total := 0
 	var failed := 0
 	var files := DirAccess.get_files_at(TEST_DIR)
