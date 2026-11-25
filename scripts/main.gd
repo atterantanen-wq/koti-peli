@@ -33,8 +33,8 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	var pressed_touch := event is InputEventScreenTouch and event.pressed
-	var pressed_mouse := event is InputEventMouseButton and event.pressed \
+	var pressed_touch: bool = event is InputEventScreenTouch and event.pressed
+	var pressed_mouse: bool = event is InputEventMouseButton and event.pressed \
 			and event.button_index == MOUSE_BUTTON_LEFT
 	if pressed_touch or pressed_mouse:
 		on_tap()
