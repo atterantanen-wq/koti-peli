@@ -78,7 +78,8 @@ func stop() -> void:
 	_tweens.clear()
 	for node in _rest:
 		if is_instance_valid(node):
-			(node as Node3D).transform = _rest[node]
+			(node as Node3D).transform = _rest[node][0]
+			(node as Node3D).visible = _rest[node][1]
 
 
 func is_playing() -> bool:
@@ -97,4 +98,4 @@ func _remember_rest() -> void:
 	if visual == null:
 		return
 	for node in [visual] + visual.find_children("*", "Node3D", true, false):
-		_rest[node] = (node as Node3D).transform
+		_rest[node] = [(node as Node3D).transform, (node as Node3D).visible]

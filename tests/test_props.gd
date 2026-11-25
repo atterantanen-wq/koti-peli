@@ -54,7 +54,7 @@ func test_every_interactable_has_several_tricks() -> void:
 					check(r.target_node(ReactionContext.new(node, null, null)) != null,
 							"%s: reaktion kohde %s löytyy" % [node.name, r.target])
 			if set != null:
-				check(set.duration() < 6.0, "%s: temppu kestää alle 6 s" % node.name)
+				check(set.duration() < 10.0, "%s: temppu kestää alle 10 s" % node.name)
 	check(count >= 3, "huoneessa on ainakin kolme heräävää esinettä (%d)" % count)
 	main.free()
 

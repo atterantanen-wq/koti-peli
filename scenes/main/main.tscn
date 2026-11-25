@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" path="res://scenes/rooms/kids_room.tscn" id="2_room"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_player"]
 [ext_resource type="Script" path="res://scripts/core/follow_camera.gd" id="4_camera"]
+[ext_resource type="Script" path="res://scripts/core/day_night.gd" id="5_daynight"]
 
 [sub_resource type="Environment" id="Environment_sky"]
 background_mode = 1
@@ -28,6 +29,11 @@ environment = SubResource("Environment_sky")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 0)
 rotation_degrees = Vector3(-55, 30, 0)
 light_energy = 0.6
+
+[node name="DayNight" type="Node" parent="."]
+script = ExtResource("5_daynight")
+sun_path = NodePath("../Sun")
+environment_path = NodePath("../WorldEnvironment")
 
 [node name="Room" parent="." instance=ExtResource("2_room")]
 

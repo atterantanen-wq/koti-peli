@@ -2,7 +2,7 @@
 // tarkistaa, että ruudun keskellä näkyy jotain muuta kuin taustaväri ja että
 // napautus menee peliin asti (peli kirjoittaa konsoliin "napautus N: ...").
 // Lopuksi kokeillaan esineiden temppuja iPhonen tapaisella kosketuksella
-// (iso sormitunniste): sängyllä pomppiminen ja siipiotuksen lento.
+// (iso sormitunniste): sängyllä pomppiminen, siipiotuksen lento ja lammasyövalo.
 // Käyttö: node tools/web_smoke.mjs build/web screenshot.png
 import http from "node:http";
 import fs from "node:fs";
@@ -69,6 +69,10 @@ await page.waitForTimeout(4000);
 await tapProp("WingCreature"); // otus lentää
 await page.waitForTimeout(1800);
 await page.screenshot({ path: out.replace(".png", "-fly.png") });
+await page.waitForTimeout(3000);
+await tapProp("SheepLight");   // lammasyövalo: yö
+await page.waitForTimeout(4500);
+await page.screenshot({ path: out.replace(".png", "-night.png") });
 await browser.close();
 server.close();
 
@@ -91,7 +95,7 @@ if (taps.length < 3) {
 const tricks = logs.filter((l) => l.startsWith("temppu "));
 const count = (name) => tricks.filter((l) => l.startsWith(`temppu ${name} `)).length;
 console.log(`temput: ${tricks.join(", ")}`);
-if (count("Bed") < 1 || count("WingCreature") < 2) {
+if (count("Bed") < 1 || count("WingCreature") < 2 || count("SheepLight") < 1) {
   console.log("VIRHE: esineiden temput eivät käynnistyneet kosketuksella");
   process.exit(1);
 }

@@ -1,0 +1,235 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/props/interactable.gd" id="1_inter"]
+[ext_resource type="Script" path="res://scripts/props/reactions/reaction_set.gd" id="2_set"]
+[ext_resource type="Script" path="res://scripts/props/reactions/reaction.gd" id="3_reaction"]
+[ext_resource type="Script" path="res://scripts/props/reactions/show_reaction.gd" id="4_show"]
+[ext_resource type="Script" path="res://scripts/props/reactions/squash_reaction.gd" id="5_squash"]
+[ext_resource type="Script" path="res://scripts/props/reactions/float_effect_reaction.gd" id="6_float"]
+[ext_resource type="Script" path="res://scripts/props/reactions/hop_reaction.gd" id="7_hop"]
+
+[sub_resource type="BoxShape3D" id="Shape_house"]
+size = Vector3(0.62, 0.62, 0.46)
+
+[sub_resource type="StandardMaterial3D" id="Mat_white"]
+albedo_color = Color(0.97, 0.96, 0.94, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_red"]
+albedo_color = Color(0.85, 0.3, 0.3, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_window"]
+albedo_color = Color(0.55, 0.62, 0.75, 1)
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="Mat_light"]
+shading_mode = 0
+albedo_color = Color(1, 0.88, 0.45, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_door"]
+albedo_color = Color(0.6, 0.42, 0.3, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_resident_a"]
+albedo_color = Color(1, 0.8, 0.65, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_resident_b"]
+albedo_color = Color(0.75, 0.9, 0.7, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_eye"]
+albedo_color = Color(0.12, 0.1, 0.12, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_house"]
+size = Vector3(0.55, 0.45, 0.4)
+
+[sub_resource type="PrismMesh" id="Mesh_roof"]
+size = Vector3(0.66, 0.2, 0.46)
+
+[sub_resource type="BoxMesh" id="Mesh_window"]
+size = Vector3(0.12, 0.11, 0.01)
+
+[sub_resource type="BoxMesh" id="Mesh_door"]
+size = Vector3(0.1, 0.16, 0.01)
+
+[sub_resource type="SphereMesh" id="Mesh_resident"]
+radius = 0.045
+height = 0.08
+radial_segments = 12
+rings = 6
+
+[sub_resource type="SphereMesh" id="Mesh_eye"]
+radius = 0.009
+height = 0.018
+radial_segments = 6
+rings = 3
+
+[sub_resource type="Resource" id="R_light0"]
+script = ExtResource("4_show")
+target = NodePath("Visual/Light0")
+duration_visible = 3.0
+
+[sub_resource type="Resource" id="R_light1"]
+script = ExtResource("4_show")
+target = NodePath("Visual/Light1")
+duration_visible = 3.0
+delay = 0.25
+
+[sub_resource type="Resource" id="R_light2"]
+script = ExtResource("4_show")
+target = NodePath("Visual/Light2")
+duration_visible = 3.0
+delay = 0.5
+
+[sub_resource type="Resource" id="R_squash"]
+script = ExtResource("5_squash")
+amount = 0.08
+time = 0.5
+
+[sub_resource type="Resource" id="R_sparkle"]
+script = ExtResource("6_float")
+shape = "star"
+color = Color(1, 0.86, 0.35, 1)
+count = 3
+offset = Vector3(0, 0.75, 0.1)
+spread = 0.3
+delay = 0.5
+
+[sub_resource type="Resource" id="R_show_a"]
+script = ExtResource("4_show")
+target = NodePath("Visual/ResidentA")
+duration_visible = 2.6
+delay = 0.5
+
+[sub_resource type="Resource" id="R_show_b"]
+script = ExtResource("4_show")
+target = NodePath("Visual/ResidentB")
+duration_visible = 2.4
+delay = 0.9
+
+[sub_resource type="Resource" id="R_peek_a"]
+script = ExtResource("7_hop")
+target = NodePath("Visual/ResidentA")
+height = 0.05
+count = 3
+hop_time = 0.45
+delay = 0.8
+
+[sub_resource type="Resource" id="R_peek_b"]
+script = ExtResource("7_hop")
+target = NodePath("Visual/ResidentB")
+height = 0.05
+count = 3
+hop_time = 0.4
+delay = 1.2
+
+[sub_resource type="Resource" id="R_hearts"]
+script = ExtResource("6_float")
+shape = "heart"
+color = Color(1, 0.5, 0.6, 1)
+count = 2
+offset = Vector3(0, 0.75, 0.1)
+delay = 1.4
+
+[sub_resource type="Resource" id="Set_lights"]
+script = ExtResource("2_set")
+reactions = Array[ExtResource("3_reaction")]([SubResource("R_light0"), SubResource("R_light1"), SubResource("R_light2"), SubResource("R_squash"), SubResource("R_sparkle")])
+
+[sub_resource type="Resource" id="Set_residents"]
+script = ExtResource("2_set")
+reactions = Array[ExtResource("3_reaction")]([SubResource("R_light0"), SubResource("R_light1"), SubResource("R_light2"), SubResource("R_show_a"), SubResource("R_show_b"), SubResource("R_peek_a"), SubResource("R_peek_b"), SubResource("R_hearts")])
+
+[node name="Dollhouse" type="StaticBody3D" groups=["prop"]]
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.31, 0)
+shape = SubResource("Shape_house")
+
+[node name="Interactable" type="Node" parent="."]
+script = ExtResource("1_inter")
+variants = Array[ExtResource("2_set")]([SubResource("Set_lights"), SubResource("Set_residents")])
+focus_height = 0.3
+
+[node name="Visual" type="Node3D" parent="."]
+
+[node name="House" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.225, 0)
+mesh = SubResource("Mesh_house")
+surface_material_override/0 = SubResource("Mat_white")
+
+[node name="Roof" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
+mesh = SubResource("Mesh_roof")
+surface_material_override/0 = SubResource("Mat_red")
+
+[node name="Door" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.08, 0.205)
+mesh = SubResource("Mesh_door")
+surface_material_override/0 = SubResource("Mat_door")
+
+[node name="Window0" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0.32, 0.205)
+mesh = SubResource("Mesh_window")
+surface_material_override/0 = SubResource("Mat_window")
+
+[node name="Window1" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, 0.32, 0.205)
+mesh = SubResource("Mesh_window")
+surface_material_override/0 = SubResource("Mat_window")
+
+[node name="Window2" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, 0.12, 0.205)
+mesh = SubResource("Mesh_window")
+surface_material_override/0 = SubResource("Mat_window")
+
+[node name="Light0" type="MeshInstance3D" parent="Visual"]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0.32, 0.212)
+mesh = SubResource("Mesh_window")
+surface_material_override/0 = SubResource("Mat_light")
+
+[node name="Light1" type="MeshInstance3D" parent="Visual"]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, 0.32, 0.212)
+mesh = SubResource("Mesh_window")
+surface_material_override/0 = SubResource("Mat_light")
+
+[node name="Light2" type="MeshInstance3D" parent="Visual"]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, 0.12, 0.212)
+mesh = SubResource("Mesh_window")
+surface_material_override/0 = SubResource("Mat_light")
+
+[node name="ResidentA" type="MeshInstance3D" parent="Visual"]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0.29, 0.23)
+mesh = SubResource("Mesh_resident")
+surface_material_override/0 = SubResource("Mat_resident_a")
+
+[node name="EyeL" type="MeshInstance3D" parent="Visual/ResidentA"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.016, 0.012, 0.04)
+mesh = SubResource("Mesh_eye")
+surface_material_override/0 = SubResource("Mat_eye")
+
+[node name="EyeR" type="MeshInstance3D" parent="Visual/ResidentA"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.016, 0.012, 0.04)
+mesh = SubResource("Mesh_eye")
+surface_material_override/0 = SubResource("Mat_eye")
+
+[node name="ResidentB" type="MeshInstance3D" parent="Visual"]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, 0.29, 0.23)
+mesh = SubResource("Mesh_resident")
+surface_material_override/0 = SubResource("Mat_resident_b")
+
+[node name="EyeL" type="MeshInstance3D" parent="Visual/ResidentB"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.016, 0.012, 0.04)
+mesh = SubResource("Mesh_eye")
+surface_material_override/0 = SubResource("Mat_eye")
+
+[node name="EyeR" type="MeshInstance3D" parent="Visual/ResidentB"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.016, 0.012, 0.04)
+mesh = SubResource("Mesh_eye")
+surface_material_override/0 = SubResource("Mat_eye")

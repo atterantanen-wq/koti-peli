@@ -8,11 +8,11 @@ extends Reaction
 
 
 func _animate(_ctx: ReactionContext, node: Node3D, tween: Tween) -> void:
-	var rest := node.position
+	# Suhteellinen liike: toimii myös, jos esine on jo liikkunut (esim. lelu lattialla).
 	for i in count:
-		tween.tween_property(node, "position:y", rest.y + height, hop_time * 0.45) \
+		tween.tween_property(node, "position:y", height, hop_time * 0.45).as_relative() \
 				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tween.tween_property(node, "position:y", rest.y, hop_time * 0.55) \
+		tween.tween_property(node, "position:y", -height, hop_time * 0.55).as_relative() \
 				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 
