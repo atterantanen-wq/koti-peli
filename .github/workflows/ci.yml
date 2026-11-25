@@ -1,0 +1,110 @@
+name: Testit ja julkaisu
+
+# Ajetaan jokaisesta muutoksesta. Julkaisu verkkoon tehdään vain main-haarasta.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Godotin versio. Päivitys: vaihda tämä ja project.godotin config/features.
+  GODOT_VERSION: "4.5.1"
+
+jobs:
+  build:
+    name: Testit ja selainversio
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Godot välimuistista
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ~/godot
+          key: godot-${{ env.GODOT_VERSION }}-web
+
+      - name: Lataa Godot
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          mkdir -p ~/godot && cd ~/godot
+          curl -fsSL --retry 3 -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip && rm godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          curl -fsSL --retry 3 -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          # Pidetään vain selainpohjat, jotta välimuisti pysyy pienenä.
+          unzip -q templates.tpz 'templates/version.txt' 'templates/web_*' && rm templates.tpz
+
+      - name: Asenna Godot
+        run: |
+          set -euo pipefail
+          dest=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mkdir -p "$dest"
+          cp ~/godot/templates/* "$dest/"
+          echo "$HOME/godot" >> "$GITHUB_PATH"
+
+      - name: Tuo pelin tiedostot
+        run: godot --headless --import 2>&1 | tail -20
+
+      - name: Aja testit
+        run: |
+          set -o pipefail
+          godot --headless --script res://tests/run_tests.gd 2>&1 | tee test-output.txt
+          grep -q "KAIKKI TESTIT MENIVÄT LÄPI" test-output.txt
+          if grep -qE "SCRIPT ERROR|Parse Error" test-output.txt; then
+            echo "Skriptivirheitä löytyi"; exit 1
+          fi
+
+      - name: Tee selainversio
+        run: |
+          set -euo pipefail
+          echo "$(date -u +%Y-%m-%d) ${GITHUB_SHA::7}" > build_info.txt
+          mkdir -p build/web
+          godot --headless --export-release "Web" build/web/index.html 2>&1 | tee export-output.txt
+          for f in index.html index.js index.wasm index.pck; do
+            test -s "build/web/$f" || { echo "Puuttuu: $f"; exit 1; }
+          done
+          ls -la build/web
+
+      - name: Tallenna selainversio ladattavaksi
+        uses: actions/upload-artifact@v4
+        with:
+          name: selainversio
+          path: build/web
+          retention-days: 7
+
+      - name: Valmistele julkaisu
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    name: Julkaise GitHub Pagesiin
+    needs: build
+    # Ilmainen GitHub Pages toimii vain julkisessa repossa.
+    if: >-
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.repository.private == false
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
