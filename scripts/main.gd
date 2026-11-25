@@ -202,7 +202,9 @@ func _spawn_marker(point: Vector3) -> void:
 
 
 func _update_label() -> void:
-	info_label.text = "Koti-peli %s  ·  %d fps" % [_build_text, Engine.get_frames_per_second()]
+	# Napautusten määrä näkyy, jotta iPhonella näkee, meneekö kosketus peliin asti.
+	info_label.text = "Koti-peli %s  ·  %d fps  ·  napautuksia %d" % [
+			_build_text, Engine.get_frames_per_second(), tap_count]
 
 
 ## Julkaisu kirjoittaa tiedostoon version tunnisteen, jotta näkee onko uusin versio auki.

@@ -37,3 +37,6 @@ func test_web_export_preset() -> void:
 	check_eq(config.get_value(options, "variant/thread_support", true), false, "säikeet pois")
 	check_eq(config.get_value(options, "vram_texture_compression/for_mobile", false), true,
 			"mobiilitekstuurit")
+	# Offline-välimuisti näytti iPhonella vanhaa versiota päivityksen jälkeen.
+	check_eq(config.get_value(options, "progressive_web_app/enabled", true), false,
+			"offline-välimuisti pois")

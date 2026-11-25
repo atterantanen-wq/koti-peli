@@ -72,7 +72,12 @@ jobs:
           echo "$(date -u +%Y-%m-%d) ${GITHUB_SHA::7}" > build_info.txt
           mkdir -p build/web
           godot --headless --export-release "Web" build/web/index.html 2>&1 | tee export-output.txt
-          for f in index.html index.js index.wasm index.pck; do
+          # Vanhan offline-välimuistin poisto (katso tools/service_worker_cleanup.js).
+          cp tools/service_worker_cleanup.js build/web/index.service.worker.js
+          if grep -q "serviceWorker\":\"index" build/web/index.html; then
+            echo "Offline-välimuisti on taas päällä, poista se vientiasetuksista"; exit 1
+          fi
+          for f in index.html index.js index.wasm index.pck index.service.worker.js; do
             test -s "build/web/$f" || { echo "Puuttuu: $f"; exit 1; }
           done
           ls -la build/web
