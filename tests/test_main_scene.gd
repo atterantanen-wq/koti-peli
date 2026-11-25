@@ -140,6 +140,8 @@ func test_touch_with_large_finger_id_works() -> void:
 	var pos := camera.unproject_position(Vector3(1.2, 0, 1.6))
 	main._unhandled_input(_touch(1730593021, pos, true))
 	check_eq(main.tap_count, 1, "napautus iPhonen sormitunnisteella menee peliin")
+	main._update_label()
+	check(main.info_label.text.ends_with("napautuksia 1"), "napautusten määrä näkyy ruudulla")
 	check(player.is_walking(), "hahmo lähtee kävelemään")
 	main._unhandled_input(_touch(1730593021, pos, false))
 	main._unhandled_input(_touch(1730593099, pos, true))
