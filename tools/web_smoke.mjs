@@ -34,6 +34,12 @@ await page.screenshot({ path: out });
 await page.touchscreen.tap(422, 195);
 await page.waitForTimeout(500);
 await page.touchscreen.tap(300, 300);
+await page.waitForTimeout(500);
+// iPhonen Safari antaa sormille isoja tunnisteita. Kokeillaan samaa Chromiumin kautta.
+const cdp = await page.context().newCDPSession(page);
+const point = { x: 560, y: 300, id: 1730593021 };
+await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
+await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
 await page.waitForTimeout(1500);
 await page.screenshot({ path: out.replace(".png", "-tap.png") });
 await browser.close();
@@ -51,7 +57,7 @@ if (diff(center, corner) < 30) {
   process.exit(1);
 }
 const taps = logs.filter((l) => l.startsWith("napautus "));
-if (taps.length < 2) {
+if (taps.length < 3) {
   console.log("VIRHE: napautukset eivät menneet peliin asti");
   process.exit(1);
 }

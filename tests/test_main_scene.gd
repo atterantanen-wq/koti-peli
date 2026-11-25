@@ -122,3 +122,41 @@ func test_tap_marker_star_mesh() -> void:
 	check_eq(mesh.get_surface_count(), 1, "tähti on yksi pinta")
 	var aabb := mesh.get_aabb()
 	check(aabb.size.x > 0.3 and aabb.size.y < 0.01, "tähti on litteä ja oikean kokoinen")
+
+
+func _touch(index: int, pos: Vector2, pressed: bool) -> InputEventScreenTouch:
+	var ev := InputEventScreenTouch.new()
+	ev.index = index
+	ev.position = pos
+	ev.pressed = pressed
+	return ev
+
+
+func test_touch_with_large_finger_id_works() -> void:
+	# iPhonen Safari antaa sormelle ison tunnisteen, ei nollaa.
+	var main := _spawn_main()
+	var camera := main.get_node("Camera3D") as Camera3D
+	var player := main.get_node("Player") as Player
+	var pos := camera.unproject_position(Vector3(1.2, 0, 1.6))
+	main._unhandled_input(_touch(1730593021, pos, true))
+	check_eq(main.tap_count, 1, "napautus iPhonen sormitunnisteella menee peliin")
+	check(player.is_walking(), "hahmo lähtee kävelemään")
+	main._unhandled_input(_touch(1730593021, pos, false))
+	main._unhandled_input(_touch(1730593099, pos, true))
+	check_eq(main.tap_count, 2, "seuraava napautus uudella tunnisteella toimii")
+	main._unhandled_input(_touch(1730593099, pos, false))
+	main.free()
+
+
+func test_second_finger_ignored_while_first_down() -> void:
+	var main := _spawn_main()
+	var camera := main.get_node("Camera3D") as Camera3D
+	var pos := camera.unproject_position(Vector3(1.2, 0, 1.6))
+	main._unhandled_input(_touch(5, pos, true))
+	main._unhandled_input(_touch(9, pos, true))
+	check_eq(main.tap_count, 1, "toinen sormi ei tee uutta napautusta")
+	main._unhandled_input(_touch(5, pos, false))
+	main._unhandled_input(_touch(9, pos, false))
+	main._unhandled_input(_touch(7, pos, true))
+	check_eq(main.tap_count, 2, "kun sormet nostetaan, seuraava napautus toimii")
+	main.free()
