@@ -14,6 +14,13 @@ selaimessa (iPhonen Safari). Kaikki on ilmaista.
 3. Vinkki: Safarin *Jaa*-valikosta **Lisää Koti-valikkoon**, niin peli aukeaa
    omana kuvakkeenaan koko näytölle ilman Safarin palkkeja.
 
+## Ohjaus
+
+- Napauta lattiaa: hahmo kävelee sinne (kohtaan tulee tähti).
+- Napauta huonekalua tai lelua: hahmo kävelee sen viereen.
+- Napauta hahmoa: hahmo hyppää.
+- Pidä sormi ruudulla ja liu'uta: hahmo seuraa sormea.
+
 Vasemmassa yläkulmassa näkyy versio, päivämäärä ja kuvanopeus (fps). Siitä näkee,
 onko uusin versio auki ja pyöriikö peli sujuvasti (tavoite 60 fps).
 
