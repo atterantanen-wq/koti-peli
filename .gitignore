@@ -1,0 +1,6 @@
+# Godotin välimuisti ja käännökset
+.godot/
+build/
+build_info.txt
+*.tmp
+.DS_Store
