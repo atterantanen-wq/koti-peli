@@ -1,5 +1,6 @@
 // Avaa selainversion oikeassa selaimessa (Chromium), ottaa kuvakaappauksen ja
-// tarkistaa, että ruudun keskellä näkyy jotain muuta kuin taustaväri.
+// tarkistaa, että ruudun keskellä näkyy jotain muuta kuin taustaväri ja että
+// napautus menee peliin asti (peli kirjoittaa konsoliin "napautus N: ...").
 // Käyttö: node tools/web_smoke.mjs build/web screenshot.png
 import http from "node:http";
 import fs from "node:fs";
@@ -22,14 +23,18 @@ const server = http.createServer((req, res) => {
 }).listen(8060);
 
 const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
-const page = await browser.newPage({ viewport: { width: 844, height: 390 } });
-page.on("console", (m) => console.log(`[selain ${m.type()}] ${m.text()}`));
+// hasTouch: kokeillaan myös oikeaa kosketusta, kuten iPhonessa.
+const page = await browser.newPage({ viewport: { width: 844, height: 390 }, hasTouch: true });
+const logs = [];
+page.on("console", (m) => { logs.push(m.text()); console.log(`[selain ${m.type()}] ${m.text()}`); });
 page.on("pageerror", (e) => console.log(`[selain virhe] ${e.message}`));
 await page.goto("http://localhost:8060/index.html");
 await page.waitForTimeout(12000);
 await page.screenshot({ path: out });
-await page.mouse.click(422, 195);
-await page.waitForTimeout(1000);
+await page.touchscreen.tap(422, 195);
+await page.waitForTimeout(500);
+await page.touchscreen.tap(300, 300);
+await page.waitForTimeout(1500);
 await page.screenshot({ path: out.replace(".png", "-tap.png") });
 await browser.close();
 server.close();
@@ -45,4 +50,9 @@ if (diff(center, corner) < 30) {
   console.log("VIRHE: ruudun keskellä näkyy vain taustaväri, 3D-kohtaus ei piirry");
   process.exit(1);
 }
-console.log("SELAINTESTI OK: 3D-kohtaus piirtyy");
+const taps = logs.filter((l) => l.startsWith("napautus "));
+if (taps.length < 2) {
+  console.log("VIRHE: napautukset eivät menneet peliin asti");
+  process.exit(1);
+}
+console.log("SELAINTESTI OK: 3D-kohtaus piirtyy ja napautukset toimivat");
