@@ -77,6 +77,22 @@ jobs:
           done
           ls -la build/web
 
+      - name: Kokeile selainversiota selaimessa
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock playwright pngjs >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          node tools/web_smoke.mjs build/web build/screenshot.png
+
+      - name: Tallenna kuvakaappaus
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kuvakaappaus
+          path: build/screenshot*.png
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Tallenna selainversio ladattavaksi
         uses: actions/upload-artifact@v4
         with:

@@ -4,3 +4,4 @@ build/
 build_info.txt
 *.tmp
 .DS_Store
+node_modules/
