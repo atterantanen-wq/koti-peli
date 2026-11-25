@@ -6,7 +6,9 @@ extends Node3D
 ## - Napautus huonekaluun tai esineeseen: hahmo kävelee sen viereen.
 ## - Napautus hahmoon (reilu alue hahmon ympärillä): hahmo hyppää.
 ## - Sormi painettuna ja liu'utus: hahmo seuraa sormea.
-## Vain ensimmäinen sormi lasketaan, joten toinen sormi ruudulla ei sotke.
+## Vain ensimmäinen ruudulla oleva sormi ohjaa, joten toinen sormi ei sotke.
+## Huom: iPhonen Safari antaa sormille isoja tunnisteita (ei 0, 1, ...), joten
+## sormea ei tunnisteta numerosta vaan siitä, mikä painettiin ensimmäisenä.
 
 const PLAYER_RADIUS := 0.25
 ## Hahmon napautusalue ruudulla (pelin perusresoluution pisteinä, noin 60 pt iPhonella).
@@ -20,7 +22,8 @@ var grid: WalkGrid
 var tap_count := 0
 var last_tap_kind := ""
 var _build_text := ""
-var _pressed := false
+var _finger := -1  # ohjaava sormi, -1 = ei sormea ruudulla
+var _fingers_down := {}
 var _dragging := false
 var _press_pos := Vector2.ZERO
 var _drag_pos := Vector2.ZERO
@@ -57,26 +60,37 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Hiiren napsautukset muuttuvat kosketuksiksi (project.godot), joten käsitellään vain kosketus.
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
-		if touch.index != 0:
-			return
 		if touch.pressed:
-			_pressed = true
-			_dragging = false
-			_press_pos = touch.position
-			tap_at_screen(touch.position)
+			_fingers_down[touch.index] = true
+			if _finger == -1 or _finger == touch.index or _fingers_down.size() == 1:
+				_finger = touch.index
+				_dragging = false
+				_press_pos = touch.position
+				tap_at_screen(touch.position)
 		else:
-			_pressed = false
-			_dragging = false
+			_fingers_down.erase(touch.index)
+			if touch.index == _finger or _fingers_down.is_empty():
+				_finger = -1
+				_dragging = false
 		get_viewport().set_input_as_handled()
 	elif event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
-		if drag.index != 0 or not _pressed:
+		if drag.index != _finger:
 			return
 		_drag_pos = drag.position
 		if not _dragging and _drag_pos.distance_to(_press_pos) > DRAG_THRESHOLD:
 			_dragging = true
 			_drag_timer = 0.0
 		get_viewport().set_input_as_handled()
+
+
+## Jos peli menettää kosketuksen kesken (esim. ilmoitus tai sovelluksen vaihto),
+## unohdetaan sormet, jotta seuraava napautus toimii varmasti.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+		_fingers_down.clear()
+		_finger = -1
+		_dragging = false
 
 
 ## Napautus ruudun kohtaan. Palauttaa mitä napautettiin: "player", "prop" tai "floor".
