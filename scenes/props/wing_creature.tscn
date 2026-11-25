@@ -1,0 +1,159 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/props/interactable.gd" id="1_inter"]
+[ext_resource type="Script" path="res://scripts/props/reactions/reaction_set.gd" id="2_set"]
+[ext_resource type="Script" path="res://scripts/props/reactions/reaction.gd" id="3_reaction"]
+[ext_resource type="Script" path="res://scripts/props/reactions/player_action_reaction.gd" id="4_player"]
+[ext_resource type="Script" path="res://scripts/props/reactions/flap_reaction.gd" id="5_flap"]
+[ext_resource type="Script" path="res://scripts/props/reactions/hop_reaction.gd" id="6_hop"]
+[ext_resource type="Script" path="res://scripts/props/reactions/float_effect_reaction.gd" id="7_float"]
+[ext_resource type="Script" path="res://scripts/props/reactions/fly_path_reaction.gd" id="8_fly"]
+
+[sub_resource type="BoxShape3D" id="Shape_creature"]
+size = Vector3(0.34, 0.34, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="Mat_blue"]
+albedo_color = Color(0.45, 0.66, 0.98, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="Mat_wing"]
+albedo_color = Color(0.7, 0.85, 1, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="Mat_eye"]
+albedo_color = Color(0.12, 0.12, 0.2, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_belly"]
+albedo_color = Color(0.82, 0.9, 1, 1)
+roughness = 0.9
+
+[sub_resource type="SphereMesh" id="Mesh_body"]
+radius = 0.13
+height = 0.25
+radial_segments = 16
+rings = 8
+
+[sub_resource type="SphereMesh" id="Mesh_eye"]
+radius = 0.025
+height = 0.05
+radial_segments = 8
+rings = 4
+
+[sub_resource type="SphereMesh" id="Mesh_belly"]
+radius = 0.08
+height = 0.12
+radial_segments = 12
+rings = 6
+
+[sub_resource type="BoxMesh" id="Mesh_wing"]
+size = Vector3(0.18, 0.025, 0.12)
+
+[sub_resource type="Resource" id="R_flap_short"]
+script = ExtResource("5_flap")
+parts = Array[NodePath]([NodePath("Visual/WingLeft"), NodePath("Visual/WingRight")])
+axis = Vector3(0, 0, 1)
+degrees = 45.0
+flaps = 8
+flap_time = 0.16
+
+[sub_resource type="Resource" id="R_hover"]
+script = ExtResource("6_hop")
+height = 0.3
+count = 2
+hop_time = 0.64
+
+[sub_resource type="Resource" id="R_sparkles"]
+script = ExtResource("7_float")
+shape = "star"
+color = Color(0.6, 0.8, 1, 1)
+count = 3
+offset = Vector3(0, 0.45, 0)
+delay = 0.2
+
+[sub_resource type="Resource" id="R_cheer"]
+script = ExtResource("4_player")
+action = "cheer"
+delay = 0.3
+
+[sub_resource type="Resource" id="R_flap_long"]
+script = ExtResource("5_flap")
+parts = Array[NodePath]([NodePath("Visual/WingLeft"), NodePath("Visual/WingRight")])
+axis = Vector3(0, 0, 1)
+degrees = 50.0
+flaps = 30
+flap_time = 0.15
+
+[sub_resource type="Resource" id="R_fly"]
+script = ExtResource("8_fly")
+points = PackedVector3Array(0, 0.9, 0.3, 1.2, 1.1, 1.3, 3.2, 1.0, 2.6, 4.4, 0.9, 1.2, 3.2, 1.2, 0.0, 1.2, 0.8, -0.1)
+time = 4.2
+
+[sub_resource type="Resource" id="R_cheer_back"]
+script = ExtResource("4_player")
+action = "cheer"
+delay = 4.3
+
+[sub_resource type="Resource" id="R_hearts_back"]
+script = ExtResource("7_float")
+shape = "heart"
+color = Color(0.55, 0.75, 1, 1)
+count = 3
+offset = Vector3(0, 0.45, 0)
+delay = 4.3
+
+[sub_resource type="Resource" id="Set_wake"]
+script = ExtResource("2_set")
+reactions = Array[ExtResource("3_reaction")]([SubResource("R_flap_short"), SubResource("R_hover"), SubResource("R_sparkles"), SubResource("R_cheer")])
+
+[sub_resource type="Resource" id="Set_fly"]
+script = ExtResource("2_set")
+reactions = Array[ExtResource("3_reaction")]([SubResource("R_flap_long"), SubResource("R_fly"), SubResource("R_cheer_back"), SubResource("R_hearts_back")])
+
+[node name="WingCreature" type="StaticBody3D" groups=["prop"]]
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.17, 0)
+shape = SubResource("Shape_creature")
+
+[node name="Interactable" type="Node" parent="."]
+script = ExtResource("1_inter")
+variants = Array[ExtResource("2_set")]([SubResource("Set_wake"), SubResource("Set_fly")])
+focus_height = 0.17
+
+[node name="Visual" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14, 0)
+
+[node name="Body" type="MeshInstance3D" parent="Visual"]
+mesh = SubResource("Mesh_body")
+surface_material_override/0 = SubResource("Mat_blue")
+
+[node name="Belly" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.02, 0.07)
+mesh = SubResource("Mesh_belly")
+surface_material_override/0 = SubResource("Mat_belly")
+
+[node name="EyeLeft" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.045, 0.05, 0.11)
+mesh = SubResource("Mesh_eye")
+surface_material_override/0 = SubResource("Mat_eye")
+
+[node name="EyeRight" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.045, 0.05, 0.11)
+mesh = SubResource("Mesh_eye")
+surface_material_override/0 = SubResource("Mat_eye")
+
+[node name="WingLeft" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, 0.04, -0.02)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/WingLeft"]
+transform = Transform3D(0.94, 0.34, 0, -0.34, 0.94, 0, 0, 0, 1, -0.08, 0.03, 0)
+mesh = SubResource("Mesh_wing")
+surface_material_override/0 = SubResource("Mat_wing")
+
+[node name="WingRight" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, 0.04, -0.02)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/WingRight"]
+transform = Transform3D(0.94, -0.34, 0, 0.34, 0.94, 0, 0, 0, 1, 0.08, 0.03, 0)
+mesh = SubResource("Mesh_wing")
+surface_material_override/0 = SubResource("Mat_wing")

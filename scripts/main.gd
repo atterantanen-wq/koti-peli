@@ -3,7 +3,10 @@ extends Node3D
 ##
 ## Ohjaus 5-vuotiaalle:
 ## - Napautus lattiaan: hahmo kävelee sinne ja kohtaan ilmestyy tähti.
-## - Napautus huonekaluun tai esineeseen: hahmo kävelee sen viereen.
+## - Napautus huonekaluun tai esineeseen: hahmo kävelee sen viereen ja käyttää sitä
+##   (esineen omat temput, katso scripts/props/interactable.gd).
+## - Sängyllä: hahmo kiipeää päälle, ja jokainen napautus on uusi pomppu.
+##   Napautus muualle: hahmo hyppää alas ja lähtee sinne.
 ## - Napautus hahmoon (reilu alue hahmon ympärillä): hahmo hyppää.
 ## - Sormi painettuna ja liu'utus: hahmo seuraa sormea.
 ## Vain ensimmäinen ruudulla oleva sormi ohjaa, joten toinen sormi ei sotke.
@@ -16,6 +19,8 @@ const PLAYER_TAP_RADIUS := 90.0
 ## Näin paljon sormi saa liikkua, ennen kuin napautus tulkitaan liu'utukseksi.
 const DRAG_THRESHOLD := 24.0
 const DRAG_REPATH_INTERVAL := 0.1
+## Jos napautus osuu lattiaan näin lähelle esinettä (ruudulla), käytetään esinettä.
+const PROP_TAP_RADIUS := 70.0
 const FLOOR_BOUNDS := Rect2(-3.0, -2.5, 6.0, 5.0)
 
 var grid: WalkGrid
@@ -29,10 +34,15 @@ var _press_pos := Vector2.ZERO
 var _drag_pos := Vector2.ZERO
 var _drag_timer := 0.0
 var _pending_prop: Node3D
+## Esine, jonka päällä hahmo on (esim. sänky), tai null.
+var climbed: Interactable
+## Esineet, joita on kokeiltu (nimi -> käyttökerrat).
+var tried := {}
 
 @onready var player: Player = $Player
 @onready var camera: FollowCamera = $Camera3D
 @onready var markers: Node3D = $Markers
+@onready var effects: Node3D = $Effects
 @onready var info_label: Label = $UI/InfoLabel
 
 
@@ -45,6 +55,12 @@ func _ready() -> void:
 	player.arrived.connect(_on_player_arrived)
 	_build_text = _read_build_info()
 	_update_label()
+	if OS.has_feature("web"):
+		var timer := Timer.new()
+		timer.wait_time = 0.5
+		timer.autostart = true
+		timer.timeout.connect(_publish_prop_positions)
+		add_child(timer)
 
 
 func _process(delta: float) -> void:
@@ -96,7 +112,21 @@ func _notification(what: int) -> void:
 ## Napautus ruudun kohtaan. Palauttaa mitä napautettiin: "player", "prop" tai "floor".
 func tap_at_screen(screen_pos: Vector2) -> String:
 	tap_count += 1
-	if is_near_player_on_screen(screen_pos):
+	# Napautettu käytettävä esine voittaa hahmon reilun napautusalueen, paitsi jos
+	# sormi on lähempänä hahmoa kuin esinettä. Näin hahmon vieressä olevaa lelua voi käyttää.
+	var hit_prop := _prop_of(pick(screen_pos).get("collider"))
+	var hit_inter := Interactable.of(hit_prop)
+	if hit_inter == null or _screen_distance(player.global_position + Vector3(0, 0.5, 0), screen_pos) \
+			< _screen_distance(hit_inter.focus_position(), screen_pos):
+		hit_prop = null
+	if climbed != null:
+		if hit_prop == climbed.prop() or (hit_prop == null and is_near_player_on_screen(screen_pos)):
+			_use(climbed)
+			last_tap_kind = "prop"
+			print("napautus %d: %s" % [tap_count, last_tap_kind])
+			return last_tap_kind
+		climb_down()
+	if hit_prop == null and is_near_player_on_screen(screen_pos):
 		player.stop()
 		_pending_prop = null
 		player.jump()
@@ -109,10 +139,14 @@ func tap_at_screen(screen_pos: Vector2) -> String:
 
 func is_near_player_on_screen(screen_pos: Vector2) -> bool:
 	# Verrataan hahmon keskikohtaan, jotta osuu kun napauttaa päätä, vatsaa tai jalkoja.
-	var center := player.global_position + Vector3(0, 0.5, 0)
-	if camera.is_position_behind(center):
-		return false
-	return camera.unproject_position(center).distance_to(screen_pos) <= PLAYER_TAP_RADIUS
+	return _screen_distance(player.global_position + Vector3(0, 0.5, 0), screen_pos) <= PLAYER_TAP_RADIUS
+
+
+## Kuinka kaukana ruudulla kohta on napautuksesta (pisteinä).
+func _screen_distance(point: Vector3, screen_pos: Vector2) -> float:
+	if camera.is_position_behind(point):
+		return INF
+	return camera.unproject_position(point).distance_to(screen_pos)
 
 
 func _walk_towards_screen(screen_pos: Vector2, show_marker: bool) -> String:
@@ -121,7 +155,13 @@ func _walk_towards_screen(screen_pos: Vector2, show_marker: bool) -> String:
 		return "none"
 	var collider: Node = hit.get("collider")
 	var prop := _prop_of(collider)
+	if prop == null and show_marker:
+		prop = nearest_prop_on_screen(screen_pos)
 	if prop != null:
+		if not show_marker:
+			# Liu'utus esineen yli: kävellään vain kohti, ei käytetä esinettä.
+			walk_to(hit["position"])
+			return "floor"
 		walk_to_prop(prop)
 		return "prop"
 	var point := walk_to(hit["position"])
@@ -152,13 +192,32 @@ func pick(screen_pos: Vector2) -> Dictionary:
 ## Kävelee lähimpään vapaaseen kohtaan. Palauttaa kohdan, johon hahmo on menossa.
 func walk_to(point: Vector3) -> Vector3:
 	_pending_prop = null
+	climb_down()
 	var path := grid.find_path(player.global_position, point)
 	player.walk_path(path)
 	return path[path.size() - 1] if not path.is_empty() else player.global_position
 
 
-## Kävelee esineen viereen. Perillä esine heilahtaa (esineiden omat reaktiot tulevat myöhemmin).
-func walk_to_prop(prop: Node3D) -> void:
+## Lähin esine, jonka keskikohta on ruudulla napautuksen lähellä (anteeksiantava napautus).
+func nearest_prop_on_screen(screen_pos: Vector2) -> Node3D:
+	var best: Node3D
+	var best_dist := PROP_TAP_RADIUS
+	for node in get_tree().get_nodes_in_group("prop"):
+		var inter := Interactable.of(node)
+		if inter == null:
+			continue
+		var center := inter.focus_position()
+		if camera.is_position_behind(center):
+			continue
+		var d := camera.unproject_position(center).distance_to(screen_pos)
+		if d < best_dist:
+			best_dist = d
+			best = node as Node3D
+	return best
+
+
+## Kohta lattialla esineen vieressä, lähimpänä hahmoa.
+func stand_point_for(prop: Node3D) -> Vector3:
 	var goal := grid.nearest_walkable(prop.global_position)
 	var rects := WalkGrid.obstacle_rects(prop)
 	if not rects.is_empty():
@@ -166,6 +225,13 @@ func walk_to_prop(prop: Node3D) -> void:
 		for r in rects:
 			footprint = footprint.merge(r)
 		goal = grid.nearest_walkable_to_rect(footprint, player.global_position)
+	return goal
+
+
+## Kävelee esineen viereen. Perillä hahmo käyttää esinettä.
+func walk_to_prop(prop: Node3D) -> void:
+	climb_down()
+	var goal := stand_point_for(prop)
 	var path := grid.find_path(player.global_position, goal)
 	player.walk_path(path)
 	_pending_prop = prop
@@ -187,6 +253,13 @@ func _on_player_arrived() -> void:
 	var prop := _pending_prop
 	_pending_prop = null
 	player.face_towards(prop.global_position)
+	var inter := Interactable.of(prop)
+	if inter != null:
+		if inter.climbable:
+			climb_onto(inter)
+		else:
+			_use(inter)
+		return
 	var visual := prop.get_node_or_null("Visual") as Node3D
 	if visual != null and is_inside_tree():
 		var tween := create_tween()
@@ -195,10 +268,54 @@ func _on_player_arrived() -> void:
 				.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
 
+## Hahmo kiipeää esineen päälle (esim. sängylle).
+func climb_onto(inter: Interactable) -> void:
+	climbed = inter
+	player.hop_to(inter.climb_position())
+	_mark_tried(inter)
+
+
+## Hahmo hyppää alas esineen päältä sen viereen.
+func climb_down() -> void:
+	if climbed == null:
+		return
+	var prop := climbed.prop()
+	climbed = null
+	player.hop_to(stand_point_for(prop))
+
+
+func _use(inter: Interactable) -> void:
+	var variant := inter.use(ReactionContext.new(inter.prop(), player, effects))
+	_mark_tried(inter)
+	print("temppu %s %d" % [inter.prop().name, variant])
+
+
+func _mark_tried(inter: Interactable) -> void:
+	var name := String(inter.prop().name)
+	tried[name] = int(tried.get(name, 0)) + 1
+
+
 func _spawn_marker(point: Vector3) -> void:
 	var marker := TapMarker.new()
 	markers.add_child(marker)
 	marker.global_position = point + Vector3(0, 0.02, 0)
+
+
+## Esineiden paikat ruudulla (0..1) selaimen puolelle, jotta selaintesti osaa napauttaa niitä.
+func prop_screen_positions() -> Dictionary:
+	var size := get_viewport().get_visible_rect().size
+	var out := {}
+	for node in get_tree().get_nodes_in_group("prop"):
+		var inter := Interactable.of(node)
+		if inter == null or camera.is_position_behind(inter.focus_position()):
+			continue
+		var p := camera.unproject_position(inter.focus_position())
+		out[String(node.name)] = [p.x / size.x, p.y / size.y]
+	return out
+
+
+func _publish_prop_positions() -> void:
+	JavaScriptBridge.eval("window.kotiPeliProps = %s;" % JSON.stringify(prop_screen_positions()), true)
 
 
 func _update_label() -> void:

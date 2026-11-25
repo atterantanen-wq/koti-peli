@@ -1,6 +1,8 @@
 // Avaa selainversion oikeassa selaimessa (Chromium), ottaa kuvakaappauksen ja
 // tarkistaa, että ruudun keskellä näkyy jotain muuta kuin taustaväri ja että
 // napautus menee peliin asti (peli kirjoittaa konsoliin "napautus N: ...").
+// Lopuksi kokeillaan esineiden temppuja iPhonen tapaisella kosketuksella
+// (iso sormitunniste): sängyllä pomppiminen ja siipiotuksen lento.
 // Käyttö: node tools/web_smoke.mjs build/web screenshot.png
 import http from "node:http";
 import fs from "node:fs";
@@ -42,6 +44,31 @@ await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p
 await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
 await page.waitForTimeout(1500);
 await page.screenshot({ path: out.replace(".png", "-tap.png") });
+
+// Esineiden temput. Peli kertoo esineiden paikat ruudulla (window.kotiPeliProps).
+let fingerId = 1730594000;
+const iphoneTap = async (x, y) => {
+  const p = { x, y, id: fingerId++ };
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+};
+const tapProp = async (name) => {
+  const props = await page.evaluate(() => window.kotiPeliProps || {});
+  if (!props[name]) { console.log(`esinettä ${name} ei löytynyt ruudulta`); return; }
+  const vp = page.viewportSize();
+  await iphoneTap(props[name][0] * vp.width, props[name][1] * vp.height);
+};
+await tapProp("Bed");          // kävele sängylle ja kiipeä
+await page.waitForTimeout(4000);
+await tapProp("Bed");          // pomppu
+await page.waitForTimeout(350);
+await page.screenshot({ path: out.replace(".png", "-bed.png") });
+await page.waitForTimeout(1000);
+await tapProp("WingCreature"); // alas sängyltä ja otuksen luo: otus herää
+await page.waitForTimeout(4000);
+await tapProp("WingCreature"); // otus lentää
+await page.waitForTimeout(1800);
+await page.screenshot({ path: out.replace(".png", "-fly.png") });
 await browser.close();
 server.close();
 
@@ -61,4 +88,11 @@ if (taps.length < 3) {
   console.log("VIRHE: napautukset eivät menneet peliin asti");
   process.exit(1);
 }
-console.log("SELAINTESTI OK: 3D-kohtaus piirtyy ja napautukset toimivat");
+const tricks = logs.filter((l) => l.startsWith("temppu "));
+const count = (name) => tricks.filter((l) => l.startsWith(`temppu ${name} `)).length;
+console.log(`temput: ${tricks.join(", ")}`);
+if (count("Bed") < 1 || count("WingCreature") < 2) {
+  console.log("VIRHE: esineiden temput eivät käynnistyneet kosketuksella");
+  process.exit(1);
+}
+console.log("SELAINTESTI OK: 3D-kohtaus piirtyy, napautukset ja esineiden temput toimivat");

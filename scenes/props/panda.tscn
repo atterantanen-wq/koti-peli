@@ -1,0 +1,157 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/props/interactable.gd" id="1_inter"]
+[ext_resource type="Script" path="res://scripts/props/reactions/reaction_set.gd" id="2_set"]
+[ext_resource type="Script" path="res://scripts/props/reactions/reaction.gd" id="3_reaction"]
+[ext_resource type="Script" path="res://scripts/props/reactions/player_action_reaction.gd" id="4_player"]
+[ext_resource type="Script" path="res://scripts/props/reactions/squash_reaction.gd" id="5_squash"]
+[ext_resource type="Script" path="res://scripts/props/reactions/float_effect_reaction.gd" id="6_float"]
+[ext_resource type="Script" path="res://scripts/props/reactions/spin_reaction.gd" id="7_spin"]
+
+[sub_resource type="BoxShape3D" id="Shape_panda"]
+size = Vector3(0.32, 0.4, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="Mat_white"]
+albedo_color = Color(0.98, 0.98, 0.96, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_black"]
+albedo_color = Color(0.16, 0.15, 0.17, 1)
+roughness = 0.9
+
+[sub_resource type="SphereMesh" id="Mesh_body"]
+radius = 0.13
+height = 0.24
+radial_segments = 16
+rings = 8
+
+[sub_resource type="SphereMesh" id="Mesh_head"]
+radius = 0.105
+height = 0.2
+radial_segments = 16
+rings = 8
+
+[sub_resource type="SphereMesh" id="Mesh_small"]
+radius = 0.04
+height = 0.08
+radial_segments = 8
+rings = 4
+
+[sub_resource type="SphereMesh" id="Mesh_limb"]
+radius = 0.05
+height = 0.1
+radial_segments = 8
+rings = 4
+
+[sub_resource type="Resource" id="R_hug"]
+script = ExtResource("4_player")
+action = "hug"
+
+[sub_resource type="Resource" id="R_squash"]
+script = ExtResource("5_squash")
+amount = 0.22
+time = 0.6
+delay = 0.15
+
+[sub_resource type="Resource" id="R_hearts3"]
+script = ExtResource("6_float")
+shape = "heart"
+color = Color(1, 0.42, 0.58, 1)
+count = 3
+offset = Vector3(0, 0.45, 0)
+delay = 0.2
+
+[sub_resource type="Resource" id="R_flip"]
+script = ExtResource("7_spin")
+axis = Vector3(1, 0, 0)
+degrees = 360.0
+time = 0.8
+hop_height = 0.3
+delay = 0.3
+
+[sub_resource type="Resource" id="R_hearts5"]
+script = ExtResource("6_float")
+shape = "heart"
+color = Color(1, 0.35, 0.5, 1)
+count = 5
+offset = Vector3(0, 0.55, 0)
+spread = 0.35
+rise = 0.8
+time = 1.5
+delay = 0.7
+
+[sub_resource type="Resource" id="Set_hug"]
+script = ExtResource("2_set")
+reactions = Array[ExtResource("3_reaction")]([SubResource("R_hug"), SubResource("R_squash"), SubResource("R_hearts3")])
+
+[sub_resource type="Resource" id="Set_flip"]
+script = ExtResource("2_set")
+reactions = Array[ExtResource("3_reaction")]([SubResource("R_hug"), SubResource("R_flip"), SubResource("R_hearts5")])
+
+[node name="Panda" type="StaticBody3D" groups=["prop"]]
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+shape = SubResource("Shape_panda")
+
+[node name="Interactable" type="Node" parent="."]
+script = ExtResource("1_inter")
+variants = Array[ExtResource("2_set")]([SubResource("Set_hug"), SubResource("Set_flip")])
+focus_height = 0.2
+
+[node name="Visual" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, 0)
+
+[node name="Body" type="MeshInstance3D" parent="Visual"]
+mesh = SubResource("Mesh_body")
+surface_material_override/0 = SubResource("Mat_white")
+
+[node name="Head" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, 0.01)
+mesh = SubResource("Mesh_head")
+surface_material_override/0 = SubResource("Mat_white")
+
+[node name="EarLeft" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.075, 0.245, 0)
+mesh = SubResource("Mesh_small")
+surface_material_override/0 = SubResource("Mat_black")
+
+[node name="EarRight" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.075, 0.245, 0)
+mesh = SubResource("Mesh_small")
+surface_material_override/0 = SubResource("Mat_black")
+
+[node name="EyeLeft" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(0.7, 0, 0, 0, 0.9, 0, 0, 0, 0.5, -0.04, 0.17, 0.095)
+mesh = SubResource("Mesh_small")
+surface_material_override/0 = SubResource("Mat_black")
+
+[node name="EyeRight" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(0.7, 0, 0, 0, 0.9, 0, 0, 0, 0.5, 0.04, 0.17, 0.095)
+mesh = SubResource("Mesh_small")
+surface_material_override/0 = SubResource("Mat_black")
+
+[node name="Nose" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(0.35, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0, 0.13, 0.11)
+mesh = SubResource("Mesh_small")
+surface_material_override/0 = SubResource("Mat_black")
+
+[node name="ArmLeft" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.12, 0.03, 0.04)
+mesh = SubResource("Mesh_limb")
+surface_material_override/0 = SubResource("Mat_black")
+
+[node name="ArmRight" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.12, 0.03, 0.04)
+mesh = SubResource("Mesh_limb")
+surface_material_override/0 = SubResource("Mat_black")
+
+[node name="LegLeft" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.07, -0.11, 0.07)
+mesh = SubResource("Mesh_limb")
+surface_material_override/0 = SubResource("Mat_black")
+
+[node name="LegRight" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.07, -0.11, 0.07)
+mesh = SubResource("Mesh_limb")
+surface_material_override/0 = SubResource("Mat_black")

@@ -1,4 +1,14 @@
-[gd_scene load_steps=66 format=3]
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/props/interactable.gd" id="1_inter"]
+[ext_resource type="Script" path="res://scripts/props/reactions/reaction_set.gd" id="2_set"]
+[ext_resource type="Script" path="res://scripts/props/reactions/reaction.gd" id="3_reaction"]
+[ext_resource type="Script" path="res://scripts/props/reactions/player_action_reaction.gd" id="4_player"]
+[ext_resource type="Script" path="res://scripts/props/reactions/squash_reaction.gd" id="5_squash"]
+[ext_resource type="Script" path="res://scripts/props/reactions/float_effect_reaction.gd" id="6_float"]
+[ext_resource type="Script" path="res://scripts/props/reactions/hop_reaction.gd" id="7_hop"]
+[ext_resource type="PackedScene" path="res://scenes/props/panda.tscn" id="8_panda"]
+[ext_resource type="PackedScene" path="res://scenes/props/wing_creature.tscn" id="9_creature"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(6, 0.2, 5)
@@ -222,6 +232,57 @@ rings = 1
 albedo_color = Color(0.95, 0.88, 0.6, 1)
 roughness = 0.9
 
+[sub_resource type="Resource" id="R_bed_bounce"]
+script = ExtResource("4_player")
+action = "bounce"
+
+[sub_resource type="Resource" id="R_bed_squash"]
+script = ExtResource("5_squash")
+target = NodePath("Visual/Duvet")
+amount = 0.35
+time = 0.55
+delay = 0.25
+
+[sub_resource type="Resource" id="R_bed_stars"]
+script = ExtResource("6_float")
+shape = "star"
+color = Color(1, 0.86, 0.3, 1)
+count = 3
+offset = Vector3(0, 0.6, -0.75)
+rise = 0.7
+time = 1.4
+delay = 0.25
+
+[sub_resource type="Resource" id="R_bed_pillow"]
+script = ExtResource("7_hop")
+target = NodePath("Visual/Pillow")
+height = 0.18
+hop_time = 0.5
+delay = 0.25
+
+[sub_resource type="Resource" id="R_bed_stars_pink"]
+script = ExtResource("6_float")
+shape = "star"
+color = Color(1, 0.6, 0.8, 1)
+count = 4
+offset = Vector3(0, 0.65, -0.75)
+spread = 0.35
+rise = 0.9
+time = 1.6
+delay = 0.35
+
+[sub_resource type="Resource" id="Set_bed_a"]
+script = ExtResource("2_set")
+reactions = Array[ExtResource("3_reaction")]([SubResource("R_bed_bounce"), SubResource("R_bed_squash")])
+
+[sub_resource type="Resource" id="Set_bed_b"]
+script = ExtResource("2_set")
+reactions = Array[ExtResource("3_reaction")]([SubResource("R_bed_bounce"), SubResource("R_bed_squash"), SubResource("R_bed_pillow"), SubResource("R_bed_stars")])
+
+[sub_resource type="Resource" id="Set_bed_c"]
+script = ExtResource("2_set")
+reactions = Array[ExtResource("3_reaction")]([SubResource("R_bed_bounce"), SubResource("R_bed_squash"), SubResource("R_bed_stars"), SubResource("R_bed_stars_pink")])
+
 [node name="KidsRoom" type="Node3D"]
 
 [node name="Floor" type="StaticBody3D" parent="."]
@@ -375,6 +436,19 @@ surface_material_override/0 = SubResource("Mat_white")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.325, 0.96)
 mesh = SubResource("BoxMesh_28")
 surface_material_override/0 = SubResource("Mat_white")
+
+[node name="Interactable" type="Node" parent="Bed"]
+script = ExtResource("1_inter")
+variants = Array[ExtResource("2_set")]([SubResource("Set_bed_a"), SubResource("Set_bed_b"), SubResource("Set_bed_c")])
+climbable = true
+climb_point = Vector3(0, 0.5, 0.35)
+focus_height = 0.4
+
+[node name="Panda" parent="." groups=["obstacle"] instance=ExtResource("8_panda")]
+transform = Transform3D(1.269, 0, 0.459, 0, 1.35, 0, -0.459, 0, 1.269, -1.5, 0, -0.55)
+
+[node name="WingCreature" parent="." instance=ExtResource("9_creature")]
+transform = Transform3D(1.269, 0, 0.459, 0, 1.35, 0, -0.459, 0, 1.269, -2.2, 0.5, -1.95)
 
 [node name="ToyBox" type="StaticBody3D" parent="." groups=["obstacle", "prop"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.65, 0, -1.6)

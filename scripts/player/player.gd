@@ -11,13 +11,22 @@ const RUN_DISTANCE := 2.5 # tätä pidempi matka juostaan
 const TURN_SPEED := 12.0
 const JUMP_HEIGHT := 0.45
 const JUMP_TIME := 0.4
+const BOUNCE_HEIGHT := 0.7
+const BOUNCE_TIME := 0.6
+## Hyppy esineen päälle tai alas (esim. sängylle).
+const HOP_TIME := 0.45
+const HOP_HEIGHT := 0.35
 
 var jump_count := 0
+var hug_count := 0
+var last_action := ""
 var _path := PackedVector3Array()
 var _next := 0
 var _speed := WALK_SPEED
 var _walk_time := 0.0
 var _jump_tween: Tween
+var _pose_tween: Tween
+var _hold := 0.0  # hypyn aikana hahmo ei lähde kävelemään
 
 @onready var body: Node3D = $Body
 
@@ -62,10 +71,13 @@ func _process(delta: float) -> void:
 
 ## Siirtää hahmoa yhden ruudunpäivityksen verran (testit kutsuvat tätä suoraan).
 func advance(delta: float) -> void:
+	if _hold > 0.0:
+		_hold -= delta
+		return
 	if not is_walking():
 		_walk_time = 0.0
 		if _jump_tween == null or not _jump_tween.is_running():
-			body.position.y = lerpf(body.position.y, 0.0, minf(1.0, delta * 10.0))
+			body.position = body.position.lerp(Vector3.ZERO, minf(1.0, delta * 10.0))
 		return
 	var step := _speed * delta
 	var moved_dir := Vector3.ZERO
@@ -87,7 +99,7 @@ func advance(delta: float) -> void:
 	# Pieni pomppiva askellus.
 	_walk_time += delta
 	if _jump_tween == null or not _jump_tween.is_running():
-		body.position.y = absf(sin(_walk_time * _speed * 4.0)) * 0.06
+		body.position = Vector3(0, absf(sin(_walk_time * _speed * 4.0)) * 0.06, 0)
 	if not is_walking():
 		stop()
 		arrived.emit()
@@ -123,3 +135,82 @@ func jump() -> void:
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_jump_tween.tween_property(body, "position:y", 0.0, JUMP_TIME * 0.55) \
 			.set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+
+
+## Isompi pomppu (esim. sängyllä). Uusi pomppu alkaa heti, vaikka edellinen olisi kesken.
+func bounce() -> void:
+	jump_count += 1
+	if not is_inside_tree():
+		return
+	if _jump_tween != null:
+		_jump_tween.kill()
+	var start := body.position.y
+	_jump_tween = create_tween()
+	_jump_tween.tween_property(body, "position:y", BOUNCE_HEIGHT, BOUNCE_TIME * 0.45) \
+			.from(start).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_jump_tween.tween_property(body, "position:y", 0.0, BOUNCE_TIME * 0.55) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_pose(Vector3(1.12, 0.85, 1.12), 0.0, BOUNCE_TIME)
+
+
+## Hyppää kohtaan (esim. sängyn päälle tai sieltä alas). Hahmo on heti uudessa paikassa,
+## ja vain sen kuva lentää kaarena perille. Hypyn aikana hahmo ei kävele.
+func hop_to(point: Vector3) -> void:
+	stop()
+	var from := global_position
+	face_towards(point)
+	global_position = point
+	_hold = HOP_TIME
+	if not is_inside_tree():
+		body.position = Vector3.ZERO
+		return
+	if _jump_tween != null:
+		_jump_tween.kill()
+	var offset := global_transform.basis.inverse() * (from - point)
+	_jump_tween = create_tween()
+	_jump_tween.tween_method(func(t: float) -> void:
+		body.position = offset.lerp(Vector3.ZERO, t) + Vector3(0, sin(t * PI) * HOP_HEIGHT, 0),
+		0.0, 1.0, HOP_TIME)
+
+
+## Onko hahmo kesken hypyn esineen päälle tai alas.
+func is_hopping() -> bool:
+	return _hold > 0.0
+
+
+## Halaus: hahmo kumartuu eteenpäin ja rutistuu.
+func hug() -> void:
+	hug_count += 1
+	_pose(Vector3(1.15, 0.9, 0.9), 0.35, 0.8)
+
+
+## Iloinen venytys.
+func cheer() -> void:
+	_pose(Vector3(0.9, 1.15, 0.9), 0.0, 0.5)
+
+
+## Esineen pyytämä liike: "hug", "jump", "bounce" tai "cheer".
+func do_action(action: String) -> void:
+	last_action = action
+	match action:
+		"hug": hug()
+		"jump": jump()
+		"bounce": bounce()
+		"cheer": cheer()
+
+
+func _pose(squash: Vector3, lean: float, time: float) -> void:
+	if not is_inside_tree():
+		return
+	if _pose_tween != null:
+		_pose_tween.kill()
+	body.scale = Vector3.ONE
+	body.rotation.x = 0.0
+	_pose_tween = create_tween()
+	_pose_tween.tween_property(body, "scale", squash, time * 0.3) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_pose_tween.parallel().tween_property(body, "rotation:x", lean, time * 0.3)
+	_pose_tween.tween_interval(time * 0.2)
+	_pose_tween.tween_property(body, "scale", Vector3.ONE, time * 0.5) \
+			.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	_pose_tween.parallel().tween_property(body, "rotation:x", 0.0, time * 0.5)

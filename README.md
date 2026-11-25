@@ -17,7 +17,9 @@ selaimessa (iPhonen Safari). Kaikki on ilmaista.
 ## Ohjaus
 
 - Napauta lattiaa: hahmo kävelee sinne (kohtaan tulee tähti).
-- Napauta huonekalua tai lelua: hahmo kävelee sen viereen.
+- Napauta huonekalua tai lelua: hahmo kävelee sen viereen ja lelu herää eloon.
+  Uusi napautus tekee uuden tempun.
+- Napauta sänkyä: hahmo kiipeää sängylle, ja jokainen napautus on uusi pomppu.
 - Napauta hahmoa: hahmo hyppää.
 - Pidä sormi ruudulla ja liu'uta: hahmo seuraa sormea.
 
@@ -39,6 +41,7 @@ julkaistaan verkkoon muutamassa minuutissa.
 | `scenes/props/` | Esineet, joihin voi koskea |
 | `scenes/player/` | Pelihahmo |
 | `scripts/` | Pelin koodi (GDScript); `scripts/core/` on yhteinen ydin |
+| `scripts/props/` | Esineiden temput: `Interactable` ja reaktiopalikat |
 | `assets/` | 3D-mallit, tekstuurit ja äänet |
 | `tests/` | Automaattiset testit |
 
@@ -49,3 +52,12 @@ godot --headless --import                              # tuo tiedostot
 godot --headless --script res://tests/run_tests.gd     # aja testit
 godot --headless --export-release "Web" build/web/index.html  # tee selainversio
 ```
+
+## Uusi esine, joka herää eloon
+
+Esine on `StaticBody3D` ryhmässä `prop`, ja sen kuva on `Visual`-solmun alla.
+Lisää sille lapseksi `Interactable` (`scripts/props/interactable.gd`) ja valitse
+temput (`variants`) valmiista palikoista `scripts/props/reactions/`:
+pomppu, litistys, pyörähdys, siipien lepatus, lento reittiä pitkin, sydämet/tähdet
+ja hahmon liike (halaus, hyppy, pomppu). Temput vuorottelevat napautus kerrallaan.
+Esimerkit: `scenes/props/panda.tscn`, `scenes/props/wing_creature.tscn`.
