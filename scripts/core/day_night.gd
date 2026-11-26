@@ -4,6 +4,8 @@ extends Node
 ## yövalot (ryhmä "night_light") syttyvät. Vaihto: kutsu toggle() (ryhmä "day_night").
 
 const NIGHT_LIGHT_GROUP := "night_light"
+## Päivällä näkyvät asiat (esim. auringonläikkä lattialla) piiloutuvat yöksi.
+const DAY_ONLY_GROUP := "day_only"
 const FADE_TIME := 1.2
 
 @export var sun_path: NodePath
@@ -69,6 +71,9 @@ func _apply_night_lights(night: bool) -> void:
 	for node in get_tree().get_nodes_in_group(NIGHT_LIGHT_GROUP):
 		if node is Node3D:
 			(node as Node3D).visible = night
+	for node in get_tree().get_nodes_in_group(DAY_ONLY_GROUP):
+		if node is Node3D:
+			(node as Node3D).visible = not night
 
 
 func _sun() -> DirectionalLight3D:
