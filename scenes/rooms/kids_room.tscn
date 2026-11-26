@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://scripts/props/reactions/show_reaction.gd" id="14_show"]
 [ext_resource type="Script" path="res://scripts/props/reactions/fly_path_reaction.gd" id="15_fly"]
 [ext_resource type="Script" path="res://scripts/props/reactions/call_group_reaction.gd" id="16_call"]
+[ext_resource type="Script" path="res://scripts/art/bed_art.gd" id="17_bedart"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(6, 0.2, 5)
@@ -89,9 +90,6 @@ roughness = 0.9
 [sub_resource type="BoxShape3D" id="BoxShape3D_23"]
 size = Vector3(1.0, 0.55, 2.0)
 
-[sub_resource type="BoxMesh" id="BoxMesh_24"]
-size = Vector3(1.0, 0.35, 2.0)
-
 [sub_resource type="BoxMesh" id="BoxMesh_25"]
 size = Vector3(0.94, 0.15, 1.5)
 
@@ -101,12 +99,6 @@ roughness = 0.9
 
 [sub_resource type="BoxMesh" id="BoxMesh_26"]
 size = Vector3(0.7, 0.12, 0.35)
-
-[sub_resource type="BoxMesh" id="BoxMesh_27"]
-size = Vector3(1.0, 0.95, 0.08)
-
-[sub_resource type="BoxMesh" id="BoxMesh_28"]
-size = Vector3(1.0, 0.65, 0.08)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_29"]
 size = Vector3(0.5, 0.3, 0.45)
@@ -569,11 +561,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.275, 0)
 shape = SubResource("BoxShape3D_23")
 
 [node name="Visual" type="Node3D" parent="Bed"]
-
-[node name="Frame" type="MeshInstance3D" parent="Bed/Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.175, 0)
-mesh = SubResource("BoxMesh_24")
-surface_material_override/0 = SubResource("Mat_white")
+script = ExtResource("17_bedart")
 
 [node name="Duvet" type="MeshInstance3D" parent="Bed/Visual"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.42, 0.22)
@@ -583,16 +571,6 @@ surface_material_override/0 = SubResource("Mat_stripes")
 [node name="Pillow" type="MeshInstance3D" parent="Bed/Visual"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.41, -0.75)
 mesh = SubResource("BoxMesh_26")
-surface_material_override/0 = SubResource("Mat_white")
-
-[node name="Headboard" type="MeshInstance3D" parent="Bed/Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.475, -0.96)
-mesh = SubResource("BoxMesh_27")
-surface_material_override/0 = SubResource("Mat_white")
-
-[node name="Footboard" type="MeshInstance3D" parent="Bed/Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.325, 0.96)
-mesh = SubResource("BoxMesh_28")
 surface_material_override/0 = SubResource("Mat_white")
 
 [node name="Interactable" type="Node" parent="Bed"]

@@ -16,6 +16,8 @@ const BOUNCE_TIME := 0.6
 ## Hyppy esineen päälle tai alas (esim. sängylle).
 const HOP_TIME := 0.45
 const HOP_HEIGHT := 0.35
+## Kuinka paljon kädet ja jalat heiluvat kävellessä (radiaaneina).
+const LIMB_SWING := 0.55
 
 var jump_count := 0
 var hug_count := 0
@@ -27,6 +29,7 @@ var _walk_time := 0.0
 var _jump_tween: Tween
 var _pose_tween: Tween
 var _hold := 0.0  # hypyn aikana hahmo ei lähde kävelemään
+var _arms_up := 0.0  # kädet ylhäällä (pomppu, iloinen venytys)
 
 @onready var body: Node3D = $Body
 
@@ -71,6 +74,7 @@ func _process(delta: float) -> void:
 
 ## Siirtää hahmoa yhden ruudunpäivityksen verran (testit kutsuvat tätä suoraan).
 func advance(delta: float) -> void:
+	_update_limbs(delta)
 	if _hold > 0.0:
 		_hold -= delta
 		return
@@ -128,6 +132,7 @@ func jump() -> void:
 	if _jump_tween != null and _jump_tween.is_running():
 		return
 	jump_count += 1
+	_arms_up = JUMP_TIME
 	if not is_inside_tree():
 		return
 	_jump_tween = create_tween()
@@ -151,6 +156,7 @@ func bounce() -> void:
 	_jump_tween.tween_property(body, "position:y", 0.0, BOUNCE_TIME * 0.55) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	_pose(Vector3(1.12, 0.85, 1.12), 0.0, BOUNCE_TIME)
+	_arms_up = BOUNCE_TIME
 
 
 ## Hyppää kohtaan (esim. sängyn päälle tai sieltä alas). Hahmo on heti uudessa paikassa,
@@ -187,6 +193,7 @@ func hug() -> void:
 ## Iloinen venytys.
 func cheer() -> void:
 	_pose(Vector3(0.9, 1.15, 0.9), 0.0, 0.5)
+	_arms_up = 0.5
 
 
 ## Esineen pyytämä liike: "hug", "jump", "bounce" tai "cheer".
@@ -214,3 +221,28 @@ func _pose(squash: Vector3, lean: float, time: float) -> void:
 	_pose_tween.tween_property(body, "scale", Vector3.ONE, time * 0.5) \
 			.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	_pose_tween.parallel().tween_property(body, "rotation:x", 0.0, time * 0.5)
+
+
+## Heiluttaa käsiä ja jalkoja kävellessä; pompatessa kädet nousevat ylös.
+func _update_limbs(delta: float) -> void:
+	var swing := 0.0
+	if is_walking() and _hold <= 0.0:
+		swing = sin(_walk_time * _speed * 4.0) * LIMB_SWING
+	_arms_up = maxf(0.0, _arms_up - delta)
+	var raise := 2.4 if _arms_up > 0.0 or is_hopping() else 0.0
+	var k := minf(1.0, delta * 14.0)
+	for i in 2:
+		var side := -1.0 if i == 0 else 1.0
+		var arm := body.get_node_or_null("ArmLeft" if i == 0 else "ArmRight") as Node3D
+		if arm != null:
+			arm.rotation.x = lerpf(arm.rotation.x, swing * side, k)
+			arm.rotation.z = lerpf(arm.rotation.z, (0.18 + raise) * side, k)
+		var leg := body.get_node_or_null("LegLeft" if i == 0 else "LegRight") as Node3D
+		if leg != null:
+			leg.rotation.x = lerpf(leg.rotation.x, -swing * side, k)
+
+
+## Kuinka paljon hahmon kädet ovat nousseet (0 = alhaalla). Testejä varten.
+func arm_raise() -> float:
+	var arm := body.get_node_or_null("ArmRight") as Node3D
+	return 0.0 if arm == null else arm.rotation.z - 0.18
