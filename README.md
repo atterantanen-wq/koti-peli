@@ -22,6 +22,9 @@ selaimessa (iPhonen Safari). Kaikki on ilmaista.
 - Napauta sänkyä: hahmo kiipeää sängylle, ja jokainen napautus on uusi pomppu.
 - Napauta hahmoa: hahmo hyppää.
 - Pidä sormi ruudulla ja liu'uta: hahmo seuraa sormea.
+- Kaksi sormea: nipistä lähentääksesi tai loitontaaksesi, kierrä kääntääksesi huonetta.
+- Kamera seuraa hahmoa läheltä. Tempun ajaksi kamera tekee lähikuvan ja palaa sitten.
+  Lentävän otuksen ja junan temppujen ajaksi kamera loitontaa, jotta koko matka näkyy.
 
 Vasemmassa yläkulmassa näkyy versio, päivämäärä ja kuvanopeus (fps). Siitä näkee,
 onko uusin versio auki ja pyöriikö peli sujuvasti (tavoite 60 fps).

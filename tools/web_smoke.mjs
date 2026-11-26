@@ -52,8 +52,18 @@ const iphoneTap = async (x, y) => {
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] });
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
 };
+// Kamera liikkuu (seuraa hahmoa, lähikuvat), joten odotetaan että esine pysyy paikallaan
+// ruudulla ennen napautusta. Lapsi napauttaa sitä, minkä näkee.
 const tapProp = async (name) => {
-  const props = await page.evaluate(() => window.kotiPeliProps || {});
+  let props = {};
+  let prev = null;
+  for (let i = 0; i < 20; i++) {
+    props = await page.evaluate(() => window.kotiPeliProps || {});
+    const p = props[name];
+    if (p && prev && Math.abs(p[0] - prev[0]) < 0.003 && Math.abs(p[1] - prev[1]) < 0.003) break;
+    prev = p || null;
+    await page.waitForTimeout(250);
+  }
   if (!props[name]) { console.log(`esinettä ${name} ei löytynyt ruudulta`); return; }
   const vp = page.viewportSize();
   await iphoneTap(props[name][0] * vp.width, props[name][1] * vp.height);
@@ -70,6 +80,9 @@ await tapProp("WingCreature"); // otus lentää
 await page.waitForTimeout(1800);
 await page.screenshot({ path: out.replace(".png", "-fly.png") });
 await page.waitForTimeout(3000);
+// Kamera on lähellä hahmoa, joten yövalo voi olla ruudun ulkopuolella: kävellään ensin oikealle.
+await iphoneTap(page.viewportSize().width * 0.85, page.viewportSize().height * 0.7);
+await page.waitForTimeout(2500);
 await tapProp("SheepLight");   // lammasyövalo: yö
 await page.waitForTimeout(4500);
 await page.screenshot({ path: out.replace(".png", "-night.png") });
