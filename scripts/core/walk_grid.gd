@@ -141,6 +141,48 @@ func nearest_walkable_to_rect(rect: Rect2, near: Vector3) -> Vector3:
 	return Vector3(best.x, 0.0, best.y)
 
 
+## Paikka esineen sivulla, josta kamera näkee sekä hahmon että esineen.
+## toward_camera: vaakasuunta esineestä kameraa kohti (x, z).
+## Hahmo ei mene esineen eteen (peittäisi tempun) eikä taakse (esine peittäisi hahmon),
+## jos sivulla on tilaa. Paikka on silti aina esineen vieressä.
+func side_stand_point(rect: Rect2, near: Vector3, toward_camera: Vector2) -> Vector3:
+	var near2 := Vector2(near.x, near.z)
+	var cam := toward_camera.normalized()
+	var candidates := []
+	var min_gap := INF
+	for x in size.x:
+		for y in size.y:
+			var c := Vector2i(x, y)
+			if _astar.is_point_solid(c):
+				continue
+			var center := cell_center(c)
+			var gap := center.distance_to(center.clamp(rect.position, rect.end))
+			min_gap = minf(min_gap, gap)
+			candidates.append([center, gap])
+	if candidates.is_empty():
+		return nearest_walkable(Vector3(rect.get_center().x, 0, rect.get_center().y))
+	var best := Vector2.INF
+	var best_score := INF
+	for item in candidates:
+		var center: Vector2 = item[0]
+		var gap: float = item[1]
+		# Vain esineen vierestä (enintään puoli ruutua kauempaa kuin lähin vapaa kohta).
+		if gap > min_gap + cell_size * 0.6:
+			continue
+		var side := (center - rect.get_center()).normalized()
+		var front := side.dot(cam)
+		var penalty := 0.0
+		if front > 0.55:
+			penalty = 3.0 + front  # edessä: peittäisi esineen
+		elif front < -0.6:
+			penalty = 1.5  # takana: esine peittäisi hahmon
+		var score := penalty + gap * 2.0 + center.distance_to(near2) * 0.25
+		if score < best_score:
+			best_score = score
+			best = center
+	return Vector3(best.x, 0.0, best.y)
+
+
 ## Reitti kohdasta toiseen lattiatasossa (y = 0). Tyhjä, jos perille ei pääse.
 func find_path(from: Vector3, to: Vector3) -> PackedVector3Array:
 	var start := nearest_walkable(from)

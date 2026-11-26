@@ -40,3 +40,15 @@ func test_web_export_preset() -> void:
 	# Offline-välimuisti näytti iPhonella vanhaa versiota päivityksen jälkeen.
 	check_eq(config.get_value(options, "progressive_web_app/enabled", true), false,
 			"offline-välimuisti pois")
+
+
+func test_safari_page_zoom_blocked() -> void:
+	# Kahden sormen nipistys zoomaa pelin kameraa, ei koko sivua (Safarin gesture-tapahtumat).
+	var config := ConfigFile.new()
+	config.load("res://export_presets.cfg")
+	var head := ""
+	for s in config.get_sections():
+		if s.ends_with(".options") and config.has_section_key(s, "html/head_include"):
+			head = config.get_value(s, "html/head_include", "")
+	check(head.contains("gesturestart") and head.contains("preventDefault"),
+			"Safarin sivun zoomaus estetty")
