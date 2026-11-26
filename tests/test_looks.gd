@@ -28,12 +28,17 @@ func test_game_starts_with_girl_or_boy_choice() -> void:
 	check(main.pet == null, "lemmikkiä ei valita ennen hahmoa")
 	check_eq(picker.kind_at(picker.card(0)[0]), "girl", "vasemmalla on tyttö")
 	check_eq(picker.kind_at(picker.card(1)[0]), "boy", "oikealla on poika")
+	picker._time = CardPicker.INPUT_DELAY
 	check(not main.wardrobe.visible, "vaatekaappi ei näy alun valintojen aikana")
 	_tap(picker, picker.card(0)[0])
 	var player := main.get_node("Player") as Player
 	check_eq(player.hero(), "girl", "napautus tytön kuvaan tekee hahmosta tytön")
 	check_eq(player.outfit(), "dress", "tytöllä on aluksi mekko")
 	check(main.picker is PetPicker, "seuraavaksi valitaan lemmikki")
+	# Sama napautus (iPhonella myös hiirenä) ei saa heti valita lemmikkiä.
+	_tap(main.picker, main.picker.card(0)[0])
+	check(main.pet == null, "hahmon valinnan napautus ei valitse samalla lemmikkiä")
+	main.picker._time = CardPicker.INPUT_DELAY
 	_tap(main.picker, main.picker.card(1)[0])
 	check(main.pet != null and main.pet.kind == "dog", "lemmikin valinta toimii hahmon jälkeen")
 	check(main.wardrobe.visible, "vaatekaappinappi näkyy, kun valinnat on tehty")

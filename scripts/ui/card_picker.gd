@@ -6,6 +6,11 @@ extends Control
 
 signal chosen(kind: String)
 
+## Uusi valintaruutu ei ota napautuksia heti, koska edellisen ruudun napautus
+## (kosketus ja siitä tehty hiiren napsautus) voisi muuten valita samalla kertaa
+## myös tämän ruudun kortin.
+const INPUT_DELAY := 0.4
+
 var kinds: Array = []
 var card_colors: Array = []
 
@@ -64,7 +69,8 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
 		pos = (event as InputEventMouseButton).position
 	if pos != Vector2.INF:
-		choose(kind_at(pos))
+		if _time >= INPUT_DELAY:
+			choose(kind_at(pos))
 		accept_event()
 
 
