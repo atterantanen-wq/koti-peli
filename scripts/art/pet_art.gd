@@ -33,8 +33,8 @@ static func build(kind: String) -> Node3D:
 	root.name = "Art"
 	root.scale = Vector3.ONE * SIZE
 	var cat := kind == "cat"
-	var fur := ArtKit.material(CAT_FUR if cat else DOG_FUR, 0.95)
-	var cream := ArtKit.material(CREAM, 0.95)
+	var fur := ArtKit.plush(CAT_FUR if cat else DOG_FUR)
+	var cream := ArtKit.plush(CREAM)
 	var eye := ArtKit.material(EYE, 0.2)
 	var shine := ArtKit.shine_material()
 
@@ -135,23 +135,9 @@ static func build(kind: String) -> Node3D:
 
 ## Pehmeä varjo lemmikin alle (erillään kuvasta, jotta se ei kallistu kuvan mukana).
 static func shadow() -> MeshInstance3D:
-	var disk := CylinderMesh.new()
-	disk.top_radius = 0.17 * SIZE
-	disk.bottom_radius = 0.17 * SIZE
-	disk.height = 0.002
-	disk.radial_segments = 20
-	disk.rings = 1
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Color(0.2, 0.15, 0.25, 0.25)
-	var m := MeshInstance3D.new()
+	var m := ArtKit.soft_shadow(Vector2(0.42, 0.62) * SIZE, 0.4)
 	m.name = "Shadow"
-	m.mesh = disk
-	m.material_override = mat
-	m.position = Vector3(0, 0.006, 0.05)
-	m.scale = Vector3(0.8, 1, 1.3)
-	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	m.position = Vector3(0, 0.016, 0.05)
 	return m
 
 

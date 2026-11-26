@@ -15,7 +15,7 @@ func _ready() -> void:
 	var body := get_node_or_null("Body") as MeshInstance3D
 	if body != null:
 		body.mesh = ArtKit.soft_box(Vector3(0.3, 0.27, 0.22), 0.75, 16)
-		body.material_override = ArtKit.material(BLUE, 0.95)
+		body.material_override = ArtKit.plush(BLUE)
 	var belly := get_node_or_null("Belly") as MeshInstance3D
 	if belly != null:
 		belly.mesh = ArtKit.sphere(0.08, 16)

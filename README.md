@@ -56,11 +56,17 @@ godot --headless --script res://tests/run_tests.gd     # aja testit
 godot --headless --export-release "Web" build/web/index.html  # tee selainversio
 # kuvakaappaus pelistä (tarvitsee näytön, esim. xvfb-run):
 xvfb-run godot --rendering-driver opengl3 --script res://tools/shot.gd -- kuva.png
+# lemmikki valittuna ja yöllä: SHOT_PET=cat SHOT_NIGHT=1 xvfb-run godot ...
 ```
 
 Grafiikka tehdään koodilla (`scripts/art/`): `ArtKit` tekee pehmeät muodot, putket ja
 kiehkurat sekä raita- ja tähtikuviot. Esimerkiksi `bed_art.gd` rakentaa metallisängyn ja
 `player_art.gd` hahmon. Näin peli pysyy pienenä eikä tarvitse kuvatiedostoja.
+
+Valaistus pidetään puhelimelle kevyenä: oikeita varjoja ei käytetä (selaimessa raskaat
+ja epävarmat), vaan esineiden alla on pehmeät varjolevyt (`ArtKit.soft_shadow`).
+Auringonläikkä ja yövalon kajo ovat läpinäkyviä levyjä eivätkä oikeita valoja.
+Ryhmä `day_only` piilottaa asian yöksi, `night_light` näyttää sen vain yöllä.
 
 ## Uusi esine, joka herää eloon
 

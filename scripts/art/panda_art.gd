@@ -11,8 +11,8 @@ const BLACK := Color(0.17, 0.16, 0.19)
 func _ready() -> void:
 	if get_node_or_null("Muzzle") != null:
 		return
-	var white := ArtKit.material(WHITE, 0.95)
-	var black := ArtKit.material(BLACK, 0.95)
+	var white := ArtKit.plush(WHITE)
+	var black := ArtKit.plush(BLACK)
 	_soft("Body", ArtKit.sphere(0.13, 24), Vector3(1.0, 1.05, 0.92))
 	_soft("Head", ArtKit.sphere(0.105, 24), Vector3(1.12, 0.95, 1.0))
 	for n in ["EarLeft", "EarRight"]:
