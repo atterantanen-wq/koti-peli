@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/props/reactions/squash_reaction.gd" id="5_squash"]
 [ext_resource type="Script" path="res://scripts/props/reactions/float_effect_reaction.gd" id="6_float"]
 [ext_resource type="Script" path="res://scripts/props/reactions/spin_reaction.gd" id="7_spin"]
+[ext_resource type="Script" path="res://scripts/art/panda_art.gd" id="90_art"]
 
 [sub_resource type="BoxShape3D" id="Shape_panda"]
 size = Vector3(0.32, 0.4, 0.3)
@@ -101,6 +102,7 @@ focus_height = 0.2
 
 [node name="Visual" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, 0)
+script = ExtResource("90_art")
 
 [node name="Body" type="MeshInstance3D" parent="Visual"]
 mesh = SubResource("Mesh_body")

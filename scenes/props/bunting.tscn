@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/props/reactions/flap_reaction.gd" id="4_flap"]
 [ext_resource type="Script" path="res://scripts/props/reactions/float_effect_reaction.gd" id="5_float"]
 [ext_resource type="Script" path="res://scripts/props/reactions/color_cycle_reaction.gd" id="6_color"]
+[ext_resource type="Script" path="res://scripts/art/bunting_art.gd" id="90_art"]
 
 [sub_resource type="BoxShape3D" id="Shape_bunting"]
 size = Vector3(1.8, 0.4, 0.12)
@@ -91,6 +92,7 @@ variants = Array[ExtResource("2_set")]([SubResource("Set_wave"), SubResource("Se
 focus_height = 2.2
 
 [node name="Visual" type="Node3D" parent="."]
+script = ExtResource("90_art")
 
 [node name="String" type="MeshInstance3D" parent="Visual"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.32, 0.1)

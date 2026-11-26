@@ -51,7 +51,13 @@ julkaistaan verkkoon muutamassa minuutissa.
 godot --headless --import                              # tuo tiedostot
 godot --headless --script res://tests/run_tests.gd     # aja testit
 godot --headless --export-release "Web" build/web/index.html  # tee selainversio
+# kuvakaappaus pelistä (tarvitsee näytön, esim. xvfb-run):
+xvfb-run godot --rendering-driver opengl3 --script res://tools/shot.gd -- kuva.png
 ```
+
+Grafiikka tehdään koodilla (`scripts/art/`): `ArtKit` tekee pehmeät muodot, putket ja
+kiehkurat sekä raita- ja tähtikuviot. Esimerkiksi `bed_art.gd` rakentaa metallisängyn ja
+`player_art.gd` hahmon. Näin peli pysyy pienenä eikä tarvitse kuvatiedostoja.
 
 ## Uusi esine, joka herää eloon
 
