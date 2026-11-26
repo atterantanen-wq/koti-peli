@@ -124,7 +124,7 @@ func _sheep_light() -> void:
 		for x in [-0.17, 0.17]:
 			for z in [-0.17, 0.17]:
 				ArtKit.part(self, "Leg", ArtKit.cylinder(0.025, 0.18, 10), Vector3(x, 0.09, z), wood)
-	var wool := ArtKit.material(Color(1.0, 0.98, 0.92), 1.0)
+	var wool := ArtKit.plush(Color(1.0, 0.98, 0.92), 1.0)
 	var face := ArtKit.material(Color(0.42, 0.37, 0.38), 0.9)
 	var sheep := _mesh("Sheep")
 	if sheep != null:
@@ -154,12 +154,47 @@ func _sheep_light() -> void:
 			ArtKit.part(head, "Eye", ArtKit.sphere(0.01, 8), Vector3(0.04, 0.012, 0.022 * z),
 					ArtKit.shine_material())
 		ArtKit.part(head, "Tuft", ArtKit.sphere(0.03, 10), Vector3(-0.01, 0.05, 0), wool)
+	_sheep_halo()
+
+
+## Yöllä lampaan ympärillä lämmin kajo (halpa: läpinäkyviä levyjä, ei oikeaa valoa lisää).
+func _sheep_halo() -> void:
+	# Kameraan päin kääntyvä levy lampaan ympärillä.
+	var mat := ArtKit.glow_material(Color(1.0, 0.82, 0.55, 0.5))
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	var halo := ArtKit.part(self, "NightHalo", _upright_disc(), Vector3(0, 0.36, 0), mat, Vector3.ONE * 0.85)
+	# Lattialle valoläikkä.
+	var pool := ArtKit.part(self, "NightPool", ArtKit.soft_disc(), Vector3(0, 0.007, 0),
+			ArtKit.glow_material(Color(1.0, 0.78, 0.5, 0.4)), Vector3(1.8, 1, 1.8))
+	for n in [halo, pool]:
+		n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		n.visible = false
+		n.add_to_group(DayNight.NIGHT_LIGHT_GROUP)
+
+
+## soft_disc pystyyn käännettynä (xy-tasoon), esim. kameraan päin kääntyvää kajoa varten.
+static func _upright_disc() -> ArrayMesh:
+	var flat := ArtKit.soft_disc()
+	var st := SurfaceTool.new()
+	st.create_from(flat, 0)
+	var arrays := st.commit_to_arrays()
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	for i in verts.size():
+		verts[i] = Vector3(verts[i].x, -verts[i].z, 0)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+	for i in normals.size():
+		normals[i] = Vector3.BACK
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
 
 
 func _rugs() -> void:
 	var pink := _mesh("PinkRug")
 	if pink != null:
-		pink.mesh = ArtKit.soft_box(Vector3(1.8, 0.012, 1.2), 0.15, 12)
+		pink.mesh = ArtKit.soft_box(Vector3(1.8, 0.012, 1.2), 0.3, 12)
 		var img := Image.create(64, 64, false, Image.FORMAT_RGB8)
 		for y in 64:
 			for x in 64:
@@ -167,6 +202,15 @@ func _rugs() -> void:
 				img.set_pixel(x, y, Color(0.96, 0.8, 0.8).lerp(Color(0.92, 0.7, 0.72), weave * 0.6))
 		pink.material_override = ArtKit.textured(img)
 		pink.material_override.uv1_scale = Vector3(4, 3, 1)
+		# Pörröiset tupsut maton lyhyissä päissä.
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for side in [-1.0, 1.0]:
+			for i in 15:
+				var z := lerpf(-0.5, 0.5, i / 14.0)
+				ArtKit.add_ball(st, Vector3(side * 0.93, 0.006, z), 0.028, 6)
+		ArtKit.part(pink, "Fringe", ArtKit.commit(st), Vector3.ZERO,
+				ArtKit.plush(Color(0.98, 0.86, 0.86)), Vector3(1.0, 0.5, 1.0))
 	var animal := _mesh("AnimalRug")
 	if animal != null:
 		animal.mesh = ArtKit.soft_box(Vector3(1.1, 0.014, 1.0), 1.0, 20)
@@ -259,6 +303,217 @@ func _room() -> void:
 	ArtKit.add_box(st, Vector3(-2.99, 0.04, 0), Vector3(0.02, 0.08, 5.0))
 	ArtKit.part(self, "Baseboards", ArtKit.commit(st), Vector3.ZERO, white)
 	_window()
+	_wall_decor()
+	_diorama_base()
+	_corner_shade()
+	_prop_shadows()
+	_sunbeam()
+	_wall_art()
+
+
+## Seinät kaksivärisiksi: alhaalla pehmeä minttupaneeli, ylhäällä pilkullinen tapetti,
+## välissä valkoinen lista. Paneelit ovat ohuita tasoja seinän edessä.
+func _wall_decor() -> void:
+	const PANEL_H := 0.85
+	const WALL_H := 2.6
+	var paper := ArtKit.textured(wallpaper_image(), 0.95)
+	paper.uv1_scale = Vector3(6, 2, 1)
+	var panel := ArtKit.textured(panel_image(), 0.9)
+	panel.uv1_scale = Vector3(24, 1, 1)
+	var trim := ArtKit.material(Color(0.99, 0.98, 0.96), 0.6)
+	# [seinän keskikohta lattiatasolla, suunta seinää pitkin, leveys, kääntö]
+	var walls := [[Vector3(0, 0, -2.495), 6.0, 0.0, 6.0], [Vector3(-2.995, 0, 0), 5.0, PI / 2.0, 5.0]]
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for w in walls:
+		var base: Vector3 = w[0]
+		var width: float = w[1]
+		var yaw: float = w[2]
+		var upper := QuadMesh.new()
+		upper.size = Vector2(width, WALL_H - PANEL_H)
+		var u := ArtKit.part(self, "Wallpaper", upper, base + Vector3(0, (WALL_H + PANEL_H) / 2.0, 0), paper)
+		u.rotation.y = yaw
+		var lower := QuadMesh.new()
+		lower.size = Vector2(width, PANEL_H)
+		var l := ArtKit.part(self, "WallPanel", lower, base + Vector3(0, PANEL_H / 2.0, 0), panel)
+		l.rotation.y = yaw
+		var along := Vector3.RIGHT if yaw == 0.0 else Vector3.BACK
+		var out := Vector3.BACK if yaw == 0.0 else Vector3.RIGHT
+		var size := along * width + Vector3(0, 0.04, 0) + out * 0.03
+		ArtKit.add_box(st, base + Vector3(0, PANEL_H, 0) + out * 0.01, size.abs())
+	ArtKit.part(self, "ChairRail", ArtKit.commit(st), Vector3.ZERO, trim)
+	# Seinien yläreunaan pyöreä valkoinen "kermakakun reuna".
+	var cap_mat := ArtKit.material(Color(0.99, 0.97, 0.95), 0.7)
+	var back_cap := ArtKit.part(self, "WallCap", ArtKit.soft_box(Vector3(6.3, 0.07, 0.16), 0.5, 8),
+			Vector3(0.0, WALL_H, -2.55), cap_mat)
+	back_cap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var left_cap := ArtKit.part(self, "WallCap", ArtKit.soft_box(Vector3(0.16, 0.07, 5.25), 0.5, 8),
+			Vector3(-3.05, WALL_H, 0.025), cap_mat)
+	left_cap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## Tapetti: lämmin kermanvalkoinen, jossa pieniä vaaleanpunaisia ja keltaisia pilkkuja.
+static func wallpaper_image() -> Image:
+	var s := 64
+	var img := Image.create(s, s, false, Image.FORMAT_RGB8)
+	var base := Color(0.98, 0.95, 0.9)
+	img.fill(base)
+	var dots := [[Vector2(16, 16), Color(0.97, 0.84, 0.84)], [Vector2(48, 48), Color(0.98, 0.9, 0.72)],
+			[Vector2(48, 16), Color(0.86, 0.91, 0.96)], [Vector2(16, 48), Color(0.97, 0.84, 0.84)]]
+	for d in dots:
+		var c: Vector2 = d[0]
+		for y in range(int(c.y) - 4, int(c.y) + 5):
+			for x in range(int(c.x) - 4, int(c.x) + 5):
+				var t := Vector2(x + 0.5, y + 0.5).distance_to(c + Vector2(0.5, 0.5))
+				if t < 3.6:
+					img.set_pixel(x, y, base.lerp(d[1], clampf(3.6 - t, 0.0, 1.0)))
+	return img
+
+
+## Paneeli: pystysuuntaiset helmiponttilaudat vaalean mintun sävyssä.
+static func panel_image() -> Image:
+	var w := 16
+	var h := 8
+	var img := Image.create(w, h, false, Image.FORMAT_RGB8)
+	var mint := Color(0.85, 0.93, 0.89)
+	for y in h:
+		for x in w:
+			var c := mint
+			if x == 0:
+				c = mint.darkened(0.12)
+			elif x == 1:
+				c = mint.lightened(0.25)
+			img.set_pixel(x, y, c)
+	return img
+
+
+## Huone seisoo pyöreäreunaisella "leikkialustalla", joten se näyttää nukkekodilta
+## eikä leiju tyhjässä.
+func _diorama_base() -> void:
+	var base := ArtKit.part(self, "DioramaBase", ArtKit.soft_box(Vector3(6.35, 0.32, 5.35), 0.15, 12),
+			Vector3(-0.05, -0.165, -0.05), ArtKit.material(Color(0.95, 0.8, 0.74), 0.8))
+	base.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## Varjoisa raita lattian ja seinän rajaan sekä nurkkaan: huone näyttää syvemmältä.
+func _corner_shade() -> void:
+	var shade := ArtKit.material(Color(0.4, 0.28, 0.3), 1.0)
+	shade.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	shade.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	shade.albedo_texture = _fade_texture()
+	shade.albedo_color.a = 0.22
+	shade.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	# Lattialla seinän vieressä (tummin seinän kohdalla).
+	for w in [[Vector3(0, 0.003, -2.5 + 0.25), Vector2(6.0, 0.5), 0.0],
+			[Vector3(-3.0 + 0.25, 0.0031, 0), Vector2(5.0, 0.5), -PI / 2.0]]:
+		var q := PlaneMesh.new()
+		q.size = w[1]
+		var m := ArtKit.part(self, "FloorShade", q, w[0], shade)
+		m.rotation.y = w[2]
+		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## Liukuväri, joka on yläreunasta (v = 0) tumma ja häipyy alas.
+static func _fade_texture() -> ImageTexture:
+	var img := Image.create(4, 32, false, Image.FORMAT_RGBA8)
+	for y in 32:
+		var a := pow(1.0 - y / 31.0, 2.2)
+		for x in 4:
+			img.set_pixel(x, y, Color(1, 1, 1, a))
+	return ImageTexture.create_from_image(img)
+
+
+## Pehmeät varjot esineiden alle: esineet seisovat lattialla eivätkä leiju.
+func _prop_shadows() -> void:
+	# [solmu, varjon koko (leveys x, syvyys z), keskikohdan siirto, tummuus]
+	var shadows := [
+		["Bed", Vector2(1.7, 2.75), Vector3.ZERO, 0.4],
+		["ToyBox", Vector2(0.95, 0.88), Vector3.ZERO, 0.45],
+		["Basket", Vector2(0.85, 0.85), Vector3.ZERO, 0.45],
+		["Dresser", Vector2(1.9, 1.05), Vector3(0, 0, 0.1), 0.42],
+		["SheepLight", Vector2(0.8, 0.8), Vector3.ZERO, 0.4],
+		["Panda", Vector2(0.75, 0.7), Vector3(0, 0, 0.05), 0.45],
+		["Dollhouse", Vector2(0.75, 0.5), Vector3.ZERO, 0.3],
+	]
+	for s in shadows:
+		var prop := get_node_or_null(s[0]) as Node3D
+		if prop == null:
+			continue
+		var sh := ArtKit.soft_shadow(s[1], s[3])
+		var size: Vector2 = s[1]
+		prop.add_child(sh)
+		# Varjo pysyy suorassa ja lattian tasolla, vaikka esine olisi skaalattu tai käännetty.
+		sh.global_basis = Basis.IDENTITY.scaled(Vector3(size.x, 1.0, size.y))
+		sh.global_position = prop.global_position + s[2] + Vector3(0, 0.004, 0)
+
+
+## Ikkunasta lattialle lankeava auringonläikkä. Näkyy vain päivällä.
+func _sunbeam() -> void:
+	var patch_mat := ArtKit.material(Color(1.0, 0.92, 0.7), 1.0)
+	patch_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	patch_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	patch_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	patch_mat.albedo_texture = ImageTexture.create_from_image(window_patch_image())
+	patch_mat.albedo_color.a = 0.3
+	patch_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	var patch := PlaneMesh.new()
+	patch.size = Vector2(1.7, 1.3)
+	var p := ArtKit.part(self, "SunPatch", patch, Vector3(0.55, 0.006, -1.35), patch_mat)
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	p.add_to_group(DayNight.DAY_ONLY_GROUP)
+
+
+## Seinälle sateenkaaritaulu ja ikkunalaudalle pieni kukkaruukku.
+func _wall_art() -> void:
+	# Taulu takaseinällä sängyn ja ikkunan välissä.
+	var center := Vector3(-1.05, 1.55, -2.47)
+	ArtKit.part(self, "PictureFrame", ArtKit.soft_box(Vector3(0.62, 0.5, 0.04), 0.25, 8), center,
+			wood_material())
+	ArtKit.part(self, "PictureCanvas", ArtKit.soft_box(Vector3(0.52, 0.4, 0.03), 0.15, 6),
+			center + Vector3(0, 0, 0.008), ArtKit.material(Color(0.99, 0.97, 0.93)))
+	var colors := [Color(0.98, 0.62, 0.6), Color(1.0, 0.8, 0.5), Color(0.98, 0.93, 0.6),
+			Color(0.62, 0.85, 0.7), Color(0.62, 0.75, 0.95)]
+	var arc_center := center + Vector3(0, -0.12, 0.03)
+	for i in colors.size():
+		var r := 0.19 - i * 0.03
+		ArtKit.tube_part(self, "Rainbow%d" % i, ArtKit.arc(arc_center, Vector3.RIGHT, Vector3.UP, r, 0.0, PI, 16),
+				0.014, ArtKit.material(colors[i]))
+	for x in [-0.19, 0.19]:
+		ArtKit.part(self, "Cloud", ArtKit.sphere(0.04, 10), arc_center + Vector3(x, 0.0, 0.01),
+				ArtKit.material(Color.WHITE), Vector3(1.5, 0.9, 0.6))
+	# Kukkaruukku ikkunalaudalla.
+	var pot := Vector3(-0.15, 0.84, -2.4)
+	var pot_mesh := CylinderMesh.new()
+	pot_mesh.top_radius = 0.07
+	pot_mesh.bottom_radius = 0.05
+	pot_mesh.height = 0.11
+	pot_mesh.radial_segments = 14
+	pot_mesh.rings = 1
+	ArtKit.part(self, "PlantPot", pot_mesh, pot + Vector3(0, 0.055, 0), ArtKit.material(Color(0.95, 0.72, 0.62)))
+	var leaf := ArtKit.plush(Color(0.5, 0.75, 0.5), 0.8)
+	for i in 5:
+		var a := TAU * i / 5.0
+		var l := ArtKit.part(self, "Leaf", ArtKit.sphere(0.045, 10), pot + Vector3(cos(a) * 0.05, 0.16 + (i % 2) * 0.03, sin(a) * 0.035),
+				leaf, Vector3(0.6, 1.3, 0.6))
+		l.rotation = Vector3(sin(a) * 0.5, 0, -cos(a) * 0.5)
+	ArtKit.part(self, "Flower", ArtKit.sphere(0.03, 10), pot + Vector3(0, 0.24, 0),
+			ArtKit.material(Color(1.0, 0.75, 0.8)))
+
+
+## Ikkunan muotoinen valoläikkä: neljä ruutua, pehmeät reunat (alfa).
+static func window_patch_image() -> Image:
+	var w := 64
+	var h := 48
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	for y in h:
+		for x in w:
+			var u := (x + 0.5) / w
+			var v := (y + 0.5) / h
+			var edge := smoothstep(0.0, 0.18, minf(u, 1.0 - u)) * smoothstep(0.0, 0.2, minf(v, 1.0 - v))
+			var bar := 1.0 - 0.6 * (1.0 - smoothstep(0.0, 0.025, absf(u - 0.5))) \
+					- 0.6 * (1.0 - smoothstep(0.0, 0.03, absf(v - 0.5)))
+			img.set_pixel(x, y, Color(1, 1, 1, clampf(edge * bar, 0.0, 1.0)))
+	return img
 
 
 func _window() -> void:

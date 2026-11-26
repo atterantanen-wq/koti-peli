@@ -295,3 +295,62 @@ static func add_box(st: SurfaceTool, center: Vector3, size: Vector3) -> void:
 			else:
 				_tri(st, a, n, b, n, d, n)
 				_tri(st, a, n, d, n, e, n)
+
+
+## Pehmolelun "sametti": reunoille syttyy kevyt hehku, joka saa pinnan näyttämään pehmeältä.
+static func plush(color: Color, roughness := 0.95) -> StandardMaterial3D:
+	var m := material(color, roughness)
+	m.rim_enabled = true
+	m.rim = 0.35
+	m.rim_tint = 0.4
+	return m
+
+
+## Pyöreä, reunoilta pehmeästi häipyvä levy (xz-tasossa, halkaisija 1). Häivytys tehdään
+## kärkipisteiden väreillä eikä kuvalla, joten se toimii varmasti kaikilla laitteilla.
+static func soft_disc(segments := 24) -> ArrayMesh:
+	var radii := [0.0, 0.3, 0.55, 0.78, 1.0]
+	var alphas := [1.0, 0.95, 0.75, 0.35, 0.0]
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_normal(Vector3.UP)
+	for r in radii.size() - 1:
+		for i in segments:
+			var a0 := TAU * i / segments
+			var a1 := TAU * (i + 1) / segments
+			var quad := [[r, a0], [r + 1, a0], [r + 1, a1], [r, a0], [r + 1, a1], [r, a1]]
+			for q in quad:
+				var rad: float = radii[q[0]] * 0.5
+				st.set_color(Color(1, 1, 1, alphas[q[0]]))
+				st.add_vertex(Vector3(cos(q[1]) * rad, 0, sin(q[1]) * rad))
+	return st.commit()
+
+
+static func _soft_mat(color: Color) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.vertex_color_use_as_albedo = true
+	mat.albedo_color = color
+	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return mat
+
+
+## Pehmeä varjo lattialle esineen alle. Halpa korvike oikeille varjoille: yksi läpinäkyvä
+## levy, jonka reunat häipyvät. size = leveys (x) ja syvyys (z) metreinä.
+static func soft_shadow(size: Vector2, strength := 0.3) -> MeshInstance3D:
+	var m := MeshInstance3D.new()
+	m.name = "SoftShadow"
+	m.mesh = soft_disc()
+	m.scale = Vector3(size.x, 1.0, size.y)
+	m.material_override = _soft_mat(Color(0.32, 0.2, 0.26, strength))
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return m
+
+
+## Hehku: valoa lisäävä, reunoilta häipyvä materiaali (käytä soft_disc-levyn kanssa).
+static func glow_material(color: Color) -> StandardMaterial3D:
+	var mat := _soft_mat(color)
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	return mat
