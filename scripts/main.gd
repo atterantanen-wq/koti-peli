@@ -8,7 +8,11 @@ extends Node3D
 ## - Sängyllä: hahmo kiipeää päälle, ja jokainen napautus on uusi pomppu.
 ##   Napautus muualle: hahmo hyppää alas ja lähtee sinne.
 ## - Napautus hahmoon (reilu alue hahmon ympärillä): hahmo hyppää.
-## - Pelin alussa lapsi valitsee lemmikin (kissa tai koira) kuvista. Napautus lemmikkiin:
+## - Pelin alussa lapsi valitsee kuvista, onko hahmo tyttö vai poika, ja sitten
+##   lemmikin (kissa tai koira).
+## - Oikean yläkulman paitanapista aukeaa vaatekaappi: hahmon asun (ja tytön tai
+##   pojan) voi vaihtaa milloin tahansa (scripts/ui/wardrobe.gd).
+## - Napautus lemmikkiin: Napautus lemmikkiin:
 ##   hahmo kävelee sen luo ja silittää sitä (scripts/pet/pet.gd).
 ## - Sormi painettuna ja liu'utus: hahmo seuraa sormea.
 ## - Kaksi sormea: nipistys lähentää tai loitontaa, kierto kääntää huonetta
@@ -62,8 +66,11 @@ var climbed: Interactable
 var tried := {}
 ## Lapsen valitsema lemmikki (null, kunnes valittu).
 var pet: Pet
-## Lemmikin valinta pelin alussa (null, kun valittu).
-var picker: PetPicker
+## Valintaruutu pelin alussa: ensin tyttö tai poika (HeroPicker), sitten lemmikki
+## (PetPicker). null, kun molemmat on valittu.
+var picker: CardPicker
+## Vaatekaappi (näkyy, kun alun valinnat on tehty).
+var wardrobe: Wardrobe
 var _pending_pet := false
 
 @onready var player: Player = $Player
@@ -82,10 +89,16 @@ func _ready() -> void:
 	player.arrived.connect(_on_player_arrived)
 	_build_text = _read_build_info()
 	_update_label()
-	picker = PetPicker.new()
-	picker.name = "PetPicker"
+	wardrobe = Wardrobe.new()
+	wardrobe.name = "Wardrobe"
+	wardrobe.visible = false
+	$UI.add_child(wardrobe)
+	wardrobe.show_current(player.hero(), player.outfit())
+	wardrobe.changed.connect(dress_up)
+	picker = HeroPicker.new()
+	picker.name = "HeroPicker"
 	$UI.add_child(picker)
-	picker.chosen.connect(choose_pet)
+	picker.chosen.connect(choose_hero)
 	if OS.has_feature("web"):
 		var timer := Timer.new()
 		timer.wait_time = 0.2
@@ -158,8 +171,35 @@ func _unhandled_input(event: InputEvent) -> void:
 		camera.set_zoom(camera.zoom / maxf(0.1, (event as InputEventMagnifyGesture).factor))
 
 
+## Lapsi valitsi tytön tai pojan: hahmo puetaan oletusasuun ja sitten valitaan lemmikki.
+func choose_hero(hero: String) -> void:
+	dress_up(hero, PlayerArt.default_outfit(hero))
+	print("hahmo valittu %s" % hero)
+	if pet == null:
+		_close_picker()
+		picker = PetPicker.new()
+		picker.name = "PetPicker"
+		$UI.add_child(picker)
+		picker.chosen.connect(choose_pet)
+
+
+## Pukee hahmon (vaatekaapista tai alun valinnasta).
+func dress_up(hero: String, outfit: String) -> void:
+	player.dress_up(hero, outfit)
+	wardrobe.show_current(player.hero(), player.outfit())
+	print("vaatteet %s %s" % [player.hero(), player.outfit()])
+
+
+func _close_picker() -> void:
+	if is_instance_valid(picker) and not picker.is_done():
+		picker.queue_free()
+	picker = null
+
+
 ## Lapsi valitsi lemmikin: se ilmestyy hahmon viereen.
 func choose_pet(kind: String) -> void:
+	_close_picker()
+	wardrobe.visible = true
 	if pet != null:
 		pet.queue_free()
 	pet = Pet.new()
@@ -569,10 +609,17 @@ func prop_screen_positions() -> Dictionary:
 		var q := camera.unproject_position(pet.focus_position())
 		if Rect2(Vector2.ZERO, size).has_point(q):
 			out["Pet"] = [q.x / size.x, q.y / size.y]
-	if is_instance_valid(picker):
-		for i in 2:
+	if is_instance_valid(picker) and not picker.is_done():
+		for i in picker.kinds.size():
 			var c: Vector2 = picker.card(i)[0]
-			out["Pick_" + PetPicker.KINDS[i]] = [c.x / size.x, c.y / size.y]
+			out["Pick_" + picker.kinds[i]] = [c.x / size.x, c.y / size.y]
+	if wardrobe.visible:
+		var b: Vector2 = wardrobe.button()[0]
+		out["Wardrobe"] = [b.x / size.x, b.y / size.y]
+		if wardrobe.is_open:
+			for i in Wardrobe.ITEMS.size():
+				var w: Vector2 = wardrobe.card(i)[0]
+				out["Wear_" + Wardrobe.ITEMS[i][1]] = [w.x / size.x, w.y / size.y]
 	return out
 
 

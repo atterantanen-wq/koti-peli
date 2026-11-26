@@ -1,87 +1,24 @@
 class_name PetPicker
-extends Control
+extends CardPicker
 ## Pelin alussa: lapsi valitsee lemmikin napauttamalla kissan tai koiran kuvaa.
 ## Ei tekstiä, joten lukutaitoa ei tarvita. Kuvat keinuvat kutsuvasti.
-
-signal chosen(kind: String)
 
 const KINDS := ["cat", "dog"]
 const CARD_COLORS := [Color(1.0, 0.86, 0.72), Color(0.78, 0.89, 1.0)]
 
-var _time := 0.0
-var _picked := ""
-var _pop := 0.0
+
+func _init() -> void:
+	kinds = KINDS
+	card_colors = CARD_COLORS
 
 
-func _ready() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	mouse_filter = Control.MOUSE_FILTER_STOP
-
-
-func _process(delta: float) -> void:
-	_time += delta
-	if _picked != "":
-		_pop += delta
-		modulate.a = clampf(1.0 - _pop / 0.35, 0.0, 1.0)
-		if _pop >= 0.35:
-			queue_free()
-	queue_redraw()
-
-
-## Kortin keskikohta ja säde ruudulla (0 = kissa, 1 = koira).
-func card(i: int) -> Array:
-	var s := size if size != Vector2.ZERO else get_viewport_rect().size
-	var r := minf(s.x * 0.2, s.y * 0.32)
-	var center := Vector2(s.x * (0.3 if i == 0 else 0.7), s.y * 0.53)
-	return [center, r]
-
-
-## Mikä lemmikki on ruudun kohdassa ("" = ei kumpikaan).
-func kind_at(pos: Vector2) -> String:
-	for i in 2:
-		var c: Array = card(i)
-		if pos.distance_to(c[0]) <= c[1] * 1.15:
-			return KINDS[i]
-	return ""
-
-
-func choose(kind: String) -> void:
-	if _picked != "" or kind == "":
-		return
-	_picked = kind
-	chosen.emit(kind)
-
-
-func _gui_input(event: InputEvent) -> void:
-	var pos := Vector2.INF
-	if event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed:
-		pos = (event as InputEventScreenTouch).position
-	elif event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
-		pos = (event as InputEventMouseButton).position
-	if pos != Vector2.INF:
-		choose(kind_at(pos))
-		accept_event()
-
-
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Color(1.0, 0.97, 0.92, 0.88))
-	for i in 2:
-		var c: Array = card(i)
-		var center: Vector2 = c[0]
-		var r: float = c[1]
-		var grow := 1.0 + sin(_time * 3.0 + i * PI) * 0.04
-		if _picked == KINDS[i]:
-			grow = 1.0 + _pop * 0.8
-		r *= grow
-		draw_circle(center + Vector2(0, r * 0.06), r, Color(0.4, 0.3, 0.4, 0.15))
-		draw_circle(center, r, CARD_COLORS[i])
-		draw_arc(center, r, 0.0, TAU, 48, Color.WHITE, r * 0.06, true)
-		if i == 0:
-			_draw_cat(center, r * 0.62)
-		else:
-			_draw_dog(center, r * 0.62)
-		# Pieni tassunjälki kortin alareunassa vihjeeksi: "napauta tästä".
-		_draw_paw(center + Vector2(0, r * 0.78), r * 0.1, Color(1, 1, 1, 0.9))
+func _draw_card(i: int, center: Vector2, r: float) -> void:
+	if i == 0:
+		_draw_cat(center, r * 0.62)
+	else:
+		_draw_dog(center, r * 0.62)
+	# Pieni tassunjälki kortin alareunassa vihjeeksi: "napauta tästä".
+	_draw_paw(center + Vector2(0, r * 0.78), r * 0.1, Color(1, 1, 1, 0.9))
 
 
 func _ellipse(center: Vector2, radius: Vector2, rot := 0.0, n := 28) -> PackedVector2Array:

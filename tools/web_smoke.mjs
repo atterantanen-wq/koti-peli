@@ -3,7 +3,8 @@
 // napautus menee peliin asti (peli kirjoittaa konsoliin "napautus N: ...").
 // Lopuksi kokeillaan esineiden temppuja iPhonen tapaisella kosketuksella
 // (iso sormitunniste): sängyllä pomppiminen, siipiotuksen lento ja lammasyövalo.
-// Alussa valitaan lemmikki (kissa) kuvasta, ja lopuksi silitetään sitä.
+// Alussa valitaan kuvista tyttö ja lemmikki (kissa), ja lopuksi silitetään lemmikkiä
+// ja vaihdetaan vaatekaapista vaatteet.
 // Käyttö: node tools/web_smoke.mjs build/web screenshot.png
 import http from "node:http";
 import fs from "node:fs";
@@ -35,10 +36,15 @@ await page.goto("http://localhost:8060/index.html");
 await page.waitForTimeout(12000);
 // Lemmikin valinta: peli kertoo kuvien paikat (Pick_cat, Pick_dog). Valintaruudun
 // napautus ei saa liikuttaa hahmoa.
+await page.screenshot({ path: out.replace(".png", "-hero.png") });
+const vp0 = page.viewportSize();
+const pickHero = await page.evaluate(() => (window.kotiPeliProps || {}).Pick_girl);
+if (!pickHero) { console.log("VIRHE: hahmon valintaa (tyttö/poika) ei näy"); process.exit(1); }
+await page.touchscreen.tap(pickHero[0] * vp0.width, pickHero[1] * vp0.height);
+await page.waitForTimeout(1200);
 await page.screenshot({ path: out.replace(".png", "-picker.png") });
 const pick = await page.evaluate(() => (window.kotiPeliProps || {}).Pick_cat);
 if (!pick) { console.log("VIRHE: lemmikin valintaa ei näy"); process.exit(1); }
-const vp0 = page.viewportSize();
 await page.touchscreen.tap(pick[0] * vp0.width, pick[1] * vp0.height);
 await page.waitForTimeout(1500);
 const tapsBeforeGame = logs.filter((l) => l.startsWith("napautus ")).length;
@@ -102,6 +108,23 @@ await page.waitForTimeout(3500);
 await tapProp("Pet");
 await page.waitForTimeout(3000);
 await page.screenshot({ path: out.replace(".png", "-pet.png") });
+// Vaatekaappi: paitanappi avaa valikon, pyjaman kuva pukee hahmon, napautus muualle sulkee.
+// Mikään näistä napautuksista ei saa liikuttaa hahmoa.
+const tapsBeforeWardrobe = logs.filter((l) => l.startsWith("napautus ")).length;
+const tapNamed = async (name) => {
+  const p = (await page.evaluate(() => window.kotiPeliProps || {}))[name];
+  if (!p) { console.log(`VIRHE: ${name} ei näy ruudulla`); return false; }
+  const vp = page.viewportSize();
+  await iphoneTap(p[0] * vp.width, p[1] * vp.height);
+  await page.waitForTimeout(600);
+  return true;
+};
+await tapNamed("Wardrobe");
+await tapNamed("Wear_pajamas");
+await page.screenshot({ path: out.replace(".png", "-wardrobe.png") });
+await iphoneTap(page.viewportSize().width * 0.5, page.viewportSize().height * 0.3);
+await page.waitForTimeout(600);
+const wardrobeTaps = logs.filter((l) => l.startsWith("napautus ")).length - tapsBeforeWardrobe;
 await browser.close();
 server.close();
 
@@ -128,6 +151,14 @@ if (!logs.some((l) => l.trim() === "lemmikki valittu cat") || tapsBeforeGame > 0
   console.log("VIRHE: lemmikin valinta ei toiminut kosketuksella");
   process.exit(1);
 }
+if (!logs.some((l) => l.trim() === "hahmo valittu girl")) {
+  console.log("VIRHE: hahmon valinta (tyttö) ei toiminut kosketuksella");
+  process.exit(1);
+}
+if (!logs.some((l) => l.trim() === "vaatteet girl pajamas") || wardrobeTaps > 0) {
+  console.log(`VIRHE: vaatekaappi ei toiminut kosketuksella (napautuksia peliin ${wardrobeTaps})`);
+  process.exit(1);
+}
 if (!logs.some((l) => l.startsWith("silitys cat"))) {
   console.log("VIRHE: lemmikin silitys ei toiminut");
   process.exit(1);
@@ -136,4 +167,4 @@ if (count("Bed") < 1 || count("WingCreature") < 2 || count("SheepLight") < 1) {
   console.log("VIRHE: esineiden temput eivät käynnistyneet kosketuksella");
   process.exit(1);
 }
-console.log("SELAINTESTI OK: 3D-kohtaus piirtyy, lemmikin valinta, napautukset, temput ja silitys toimivat");
+console.log("SELAINTESTI OK: 3D-kohtaus piirtyy, hahmon ja lemmikin valinta, vaatekaappi, napautukset, temput ja silitys toimivat");
