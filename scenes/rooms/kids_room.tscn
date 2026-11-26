@@ -470,6 +470,8 @@ script = ExtResource("2_set")
 reactions = Array[ExtResource("3_reaction")]([SubResource("R_daynight"), SubResource("R_sheep_hop"), SubResource("R_sheep_baa"), SubResource("R_sheep_stars")])
 
 [node name="KidsRoom" type="Node3D"]
+script = ExtResource("18_propart")
+kind = "room"
 
 [node name="Floor" type="StaticBody3D" parent="."]
 
@@ -728,7 +730,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.62, 0.8, -2.2)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.28, 0.8, -2.05)
 
 [node name="Bunting" parent="." instance=ExtResource("12_bunting")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, -2.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, -0.3, -2.42)
 
 [node name="Rugs" type="Node3D" parent="."]
 script = ExtResource("18_propart")

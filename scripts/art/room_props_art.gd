@@ -5,7 +5,7 @@ extends Node3D
 ## seinähylly nukkeineen. Laitetaan esineen Visual-solmuun ja valitaan kind.
 ## Kohtauksen nimetyt osat (Sheep, LidPivot, Toys...) säilyvät, koska temput liikuttavat niitä.
 
-@export_enum("dresser", "toybox", "basket", "sheep_light", "rugs", "shelf") var kind := "dresser"
+@export_enum("dresser", "toybox", "basket", "sheep_light", "rugs", "shelf", "room") var kind := "dresser"
 
 const PINE := Color(0.93, 0.8, 0.62)
 const PINE_DARK := Color(0.85, 0.68, 0.48)
@@ -24,6 +24,7 @@ func _ready() -> void:
 		"sheep_light": _sheep_light()
 		"rugs": _rugs()
 		"shelf": _shelf()
+		"room": _room()
 
 
 ## Männynvärinen puu, jossa on syyt ja muutama oksankohta.
@@ -235,6 +236,150 @@ func _shelf() -> void:
 		leg.rotation.z = 0.25
 		ArtKit.part(doll, "Shoe", ArtKit.sphere(0.018, 8), Vector3(0.11, -0.26, z), dress)
 	doll.position = base + Vector3(0.02, 0.02, 0)
+
+
+## Huone: lautalattia, seinät jalkalistoineen ja iso ikkuna sälekaihtimineen.
+## (Laitetaan huoneen juureen.)
+func _room() -> void:
+	var floor_mesh := get_node_or_null("Floor/Mesh") as MeshInstance3D
+	if floor_mesh != null:
+		var m := ArtKit.textured(floor_image())
+		m.uv1_scale = Vector3(4.3, 6.9, 1)
+		floor_mesh.material_override = m
+	var wall := ArtKit.material(Color(0.96, 0.94, 0.9), 0.95)
+	var white := ArtKit.material(Color(0.99, 0.99, 0.98), 0.6)
+	for path in ["BackWall/Visual/Wall", "LeftWall/Visual/Wall"]:
+		var w := get_node_or_null(path) as MeshInstance3D
+		if w != null:
+			w.material_override = wall
+	# Jalkalistat seinien alareunassa.
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	ArtKit.add_box(st, Vector3(0, 0.04, -2.49), Vector3(6.0, 0.08, 0.02))
+	ArtKit.add_box(st, Vector3(-2.99, 0.04, 0), Vector3(0.02, 0.08, 5.0))
+	ArtKit.part(self, "Baseboards", ArtKit.commit(st), Vector3.ZERO, white)
+	_window()
+
+
+func _window() -> void:
+	var visual := get_node_or_null("BackWall/Visual") as Node3D
+	if visual == null:
+		return
+	var glass := visual.get_node_or_null("WindowGlass") as MeshInstance3D
+	var frame := visual.get_node_or_null("WindowFrame") as MeshInstance3D
+	if glass == null or frame == null:
+		return
+	var c := glass.position
+	var size := Vector2(1.6, 1.1)
+	frame.visible = false
+	var quad := QuadMesh.new()
+	quad.size = size
+	glass.mesh = quad
+	glass.position.z += 0.021
+	var view := ArtKit.textured(window_view_image())
+	view.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	glass.material_override = view
+	# Yöllä ikkunasta näkyy tähtitaivas ja kuu (päivä/yö vaihtaa näkyvyyden).
+	var night_mat := ArtKit.textured(window_view_image(true))
+	night_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var night := ArtKit.part(visual, "NightView", quad, glass.position + Vector3(0, 0, 0.002), night_mat)
+	night.visible = false
+	night.add_to_group(DayNight.NIGHT_LIGHT_GROUP)
+	var white := ArtKit.material(Color(0.99, 0.99, 0.98), 0.55)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	# Paksut valkoiset karmit ja leveä ikkunalauta.
+	var t := 0.09
+	ArtKit.add_box(st, c + Vector3(0, size.y / 2 + t / 2, 0.03), Vector3(size.x + t * 2, t, 0.08))
+	ArtKit.add_box(st, c + Vector3(0, -size.y / 2 - t / 2, 0.03), Vector3(size.x + t * 2, t, 0.08))
+	for sx in [-1.0, 1.0]:
+		ArtKit.add_box(st, c + Vector3(sx * (size.x / 2 + t / 2), 0, 0.03), Vector3(t, size.y, 0.08))
+	ArtKit.add_box(st, c + Vector3(0, -size.y / 2 - t - 0.01, 0.08), Vector3(size.x + t * 2 + 0.1, 0.03, 0.16))
+	# Sälekaihdin: ylimmät säleet tiheässä, alhaalla näkyy maisema.
+	for i in 18:
+		var y := c.y + size.y / 2 - 0.03 - i * 0.034
+		ArtKit.add_box(st, Vector3(c.x, y, c.z + 0.035), Vector3(size.x - 0.04, 0.022, 0.006))
+	ArtKit.add_box(st, Vector3(c.x, c.y + size.y / 2 - 0.03 - 18 * 0.034, c.z + 0.04), Vector3(size.x - 0.02, 0.03, 0.02))
+	# Rullaverho karmin yläpuolella.
+	ArtKit.add_box(st, c + Vector3(0, size.y / 2 + t + 0.07, 0.08), Vector3(size.x + t * 2 + 0.1, 0.14, 0.1))
+	ArtKit.part(visual, "WindowTrim", ArtKit.commit(st), Vector3.ZERO, white)
+	# Kaihtimen narut.
+	var cord := ArtKit.material(Color(0.92, 0.92, 0.9))
+	for dx in [-0.05, -0.02]:
+		var top := c + Vector3(-size.x / 2 + 0.08 + dx, size.y / 2 - 0.02, 0.05)
+		ArtKit.tube_part(visual, "Cord", PackedVector3Array([top, top + Vector3(0, -0.9, 0)]), 0.004, cord)
+	for i in 5:
+		var blind := visual.get_node_or_null("Blind%d" % i) as Node3D
+		if blind != null:
+			blind.visible = false
+
+
+## Lautalattia: vaaleat tammilaudat, saumat ja limitetyt päät.
+static func floor_image() -> Image:
+	var w := 128
+	var h := 128
+	var img := Image.create(w, h, false, Image.FORMAT_RGB8)
+	var tones := [Color(0.86, 0.75, 0.61), Color(0.83, 0.72, 0.58), Color(0.88, 0.78, 0.64), Color(0.84, 0.74, 0.6)]
+	for y in h:
+		var plank := y / 32
+		var offset: int = [0, 70, 30, 100][plank]
+		for x in w:
+			var c: Color = tones[plank]
+			var grain := sin(float(x) * 0.15 + sin(float(y) * 0.7 + plank) * 1.5)
+			c = c.darkened(0.04 * smoothstep(0.6, 1.0, grain))
+			if y % 32 == 0 or (x + offset) % w == 0:
+				c = c.darkened(0.2)
+			img.set_pixel(x, y, c)
+	return img
+
+
+## Ikkunasta näkyvä maisema: taivas, pilvi ja naapuritalojen pehmeät katot.
+## night = true: tummansininen yötaivas, kuu, tähdet ja valaistut ikkunat.
+static func window_view_image(night := false) -> Image:
+	var w := 128
+	var h := 96
+	var img := Image.create(w, h, false, Image.FORMAT_RGB8)
+	for y in h:
+		var sky := Color(0.62, 0.8, 0.97).lerp(Color(0.86, 0.93, 1.0), float(y) / h)
+		if night:
+			sky = Color(0.1, 0.12, 0.3).lerp(Color(0.22, 0.24, 0.45), float(y) / h)
+		for x in w:
+			img.set_pixel(x, y, sky)
+	var paint := func(cx: float, cy: float, rx: float, ry: float, col: Color) -> void:
+		for y in range(int(cy - ry), int(cy + ry) + 1):
+			for x in range(int(cx - rx), int(cx + rx) + 1):
+				if x >= 0 and y >= 0 and x < w and y < h \
+						and Vector2((x - cx) / rx, (y - cy) / ry).length() <= 1.0:
+					img.set_pixel(x, y, col)
+	if night:
+		paint.call(98, 18, 9, 9, Color(1.0, 0.95, 0.75))
+		paint.call(103, 15, 8, 8, Color(0.1, 0.12, 0.3))
+		for p in [[12, 8], [30, 20], [52, 10], [70, 26], [84, 6], [118, 30], [40, 32], [20, 30]]:
+			paint.call(p[0], p[1], 1.2, 1.2, Color(1.0, 0.95, 0.7))
+	else:
+		for p in [[30, 18, 12, 6], [40, 15, 10, 7], [50, 19, 10, 5], [96, 26, 9, 5], [104, 24, 8, 6]]:
+			paint.call(p[0], p[1], p[2], p[3], Color(1, 1, 1))
+	# Katot: kaksi kerrosta, kauempi vaaleampi.
+	for y in range(40, h):
+		for x in w:
+			var roof_far := 40 + absf(fmod(x + 10.0, 64.0) - 32.0) * 0.35
+			var roof_near := 60 + absf(fmod(x, 80.0) - 40.0) * 0.3
+			var near := Color(0.6, 0.66, 0.78)
+			var far := Color(0.75, 0.8, 0.88)
+			if night:
+				near = Color(0.16, 0.17, 0.3)
+				far = Color(0.22, 0.23, 0.38)
+			if y > roof_near:
+				var stripe := 0.04 if int(y) % 6 < 1 else 0.0
+				img.set_pixel(x, y, near.darkened(stripe))
+			elif y > roof_far:
+				img.set_pixel(x, y, far)
+	if night:
+		for p in [[20, 80], [56, 84], [92, 78], [110, 86], [36, 62]]:
+			for yy in range(p[1], p[1] + 5):
+				for xx in range(p[0], p[0] + 4):
+					img.set_pixel(xx, yy, Color(1.0, 0.85, 0.45))
+	return img
 
 
 static func _torus(inner: float, outer: float) -> TorusMesh:

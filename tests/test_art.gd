@@ -76,3 +76,29 @@ func test_animal_face_has_eyes() -> void:
 	var img := RoomPropsArt.animal_face_image()
 	check(img.get_pixel(44, 56).v < 0.4, "eläinmatolla on silmä")
 	check(img.get_pixel(5, 5).v > 0.7, "maton pohja on vaalea")
+
+
+func test_room_has_floor_window_and_night_view() -> void:
+	var main: Node = (load("res://scenes/main/main.tscn") as PackedScene).instantiate()
+	tree.root.add_child(main)
+	var room := main.get_node("Room")
+	var floor_mesh := room.get_node("Floor/Mesh") as MeshInstance3D
+	check((floor_mesh.material_override as StandardMaterial3D).albedo_texture != null, "lattiassa on laudat")
+	check(room.get_node_or_null("BackWall/Visual/WindowTrim") != null, "ikkunassa on karmit ja sälekaihdin")
+	check(room.get_node_or_null("Baseboards") != null, "seinillä on jalkalistat")
+	var night := room.get_node("BackWall/Visual/NightView") as Node3D
+	check(not night.visible, "päivällä ikkunasta näkyy päivä")
+	main.get_node("DayNight").toggle()
+	check(night.visible, "yöllä ikkunasta näkyy tähtitaivas")
+	main.free()
+
+
+func test_bunting_flags_keep_color_game() -> void:
+	# Viirien värileikki vaihtaa pintamateriaalin väriä, joten kuvio ei saa peittää sitä.
+	var main: Node = (load("res://scenes/main/main.tscn") as PackedScene).instantiate()
+	tree.root.add_child(main)
+	var flag := main.get_node("Room/Bunting/Visual/Flag0/Mesh") as MeshInstance3D
+	check(flag.material_override == null, "viirin väri ei ole lukittu")
+	var mat := flag.get_surface_override_material(0) as StandardMaterial3D
+	check(mat != null and mat.albedo_texture != null, "viirissä on kuvio")
+	main.free()
