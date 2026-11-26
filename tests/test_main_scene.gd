@@ -1,7 +1,9 @@
 extends "res://tests/test_case.gd"
 ## Tarkistaa, että lastenhuone käynnistyy ja napautusohjaus toimii.
 
-const PROPS := ["Bed", "ToyBox", "SheepLight"]
+const PROPS := ["Bed", "ToyBox", "SheepLight", "Panda"]
+## Sängyn päällä olevat pehmolelut: hahmo menee sängyn viereen.
+const BED_TOYS := ["WingCreature"]
 
 
 func _spawn_main() -> Node:
@@ -63,20 +65,29 @@ func test_furniture_blocks_walking() -> void:
 func test_every_prop_reachable() -> void:
 	var main := _spawn_main()
 	var player := main.get_node("Player") as Player
-	for name in PROPS:
+	for name in PROPS + BED_TOYS:
 		var prop := main.get_node("Room/" + name) as Node3D
 		main.walk_to_prop(prop)
 		var goal := player.target()
 		var footprint: Rect2 = WalkGrid.obstacle_rects(prop)[0]
 		var goal2 := Vector2(goal.x, goal.z)
 		var gap := goal2.distance_to(goal2.clamp(footprint.position, footprint.end))
-		check(gap < 0.5, "hahmo pääsee esineen %s viereen (väli %.2f m)" % [name, gap])
+		var max_gap := 0.8 if name in BED_TOYS else 0.5
+		check(gap < max_gap, "hahmo pääsee esineen %s viereen (väli %.2f m)" % [name, gap])
+		var arrived := [Vector3.INF]
+		var record := func() -> void: arrived[0] = player.global_position
+		player.arrived.connect(record, CONNECT_ONE_SHOT)
 		for i in 600:
 			player.advance(1.0 / 60.0)
 			if not player.is_walking():
 				break
 		check(not player.is_walking(), "hahmo ehtii esineen %s luo" % name)
-		check(player.global_position.distance_to(goal) < 0.01, "hahmo on perillä (%s)" % name)
+		if name == "Bed":
+			check(main.climbed != null, "hahmo kiipeää sängylle")
+		else:
+			check(arrived[0].distance_to(goal) < 0.01, "hahmo on perillä (%s)" % name)
+		for i in 60:
+			player.advance(1.0 / 60.0)
 	main.free()
 
 
