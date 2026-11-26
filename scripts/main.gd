@@ -8,6 +8,8 @@ extends Node3D
 ## - Sängyllä: hahmo kiipeää päälle, ja jokainen napautus on uusi pomppu.
 ##   Napautus muualle: hahmo hyppää alas ja lähtee sinne.
 ## - Napautus hahmoon (reilu alue hahmon ympärillä): hahmo hyppää.
+## - Pelin alussa lapsi valitsee lemmikin (kissa tai koira) kuvista. Napautus lemmikkiin:
+##   hahmo kävelee sen luo ja silittää sitä (scripts/pet/pet.gd).
 ## - Sormi painettuna ja liu'utus: hahmo seuraa sormea.
 ## - Kaksi sormea: nipistys lähentää tai loitontaa, kierto kääntää huonetta
 ##   (lähinnä aikuiselle, lapsen ei tarvitse osata).
@@ -32,6 +34,10 @@ const GESTURE_CANCEL_TIME := 0.35
 const WHEEL_ZOOM_STEP := 1.1
 ## Lähikuva kestää vähintään näin kauan.
 const CLOSEUP_MIN_TIME := 1.6
+## Lemmikin napautusalue ruudulla.
+const PET_TAP_RADIUS := 75.0
+## Kuinka kauas lemmikistä hahmo jää silittämään.
+const PET_STAND_GAP := 0.5
 
 var grid: WalkGrid
 var tap_count := 0
@@ -54,6 +60,11 @@ var _shot_inter: Interactable
 var climbed: Interactable
 ## Esineet, joita on kokeiltu (nimi -> käyttökerrat).
 var tried := {}
+## Lapsen valitsema lemmikki (null, kunnes valittu).
+var pet: Pet
+## Lemmikin valinta pelin alussa (null, kun valittu).
+var picker: PetPicker
+var _pending_pet := false
 
 @onready var player: Player = $Player
 @onready var camera: FollowCamera = $Camera3D
@@ -71,6 +82,10 @@ func _ready() -> void:
 	player.arrived.connect(_on_player_arrived)
 	_build_text = _read_build_info()
 	_update_label()
+	picker = PetPicker.new()
+	picker.name = "PetPicker"
+	$UI.add_child(picker)
+	picker.chosen.connect(choose_pet)
 	if OS.has_feature("web"):
 		var timer := Timer.new()
 		timer.wait_time = 0.2
@@ -143,6 +158,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		camera.set_zoom(camera.zoom / maxf(0.1, (event as InputEventMagnifyGesture).factor))
 
 
+## Lapsi valitsi lemmikin: se ilmestyy hahmon viereen.
+func choose_pet(kind: String) -> void:
+	if pet != null:
+		pet.queue_free()
+	pet = Pet.new()
+	pet.name = "Pet"
+	add_child(pet)
+	pet.setup(kind, player, grid, effects, get_node_or_null("Room"), get_node_or_null("DayNight") as DayNight)
+	pet.global_position = grid.nearest_walkable(player.global_position + Vector3(0.6, 0, 0.3))
+	pet.face_towards(player.global_position)
+	print("lemmikki valittu %s" % kind)
+
+
 ## Kaksi sormea ruudulla: aloitetaan zoomaus ja kääntö. Hahmo ei seuraa sormia.
 func _start_gesture() -> void:
 	if not _gesture and _finger != -1 and _now() - _press_time < GESTURE_CANCEL_TIME:
@@ -209,6 +237,12 @@ func tap_at_screen(screen_pos: Vector2) -> String:
 	if hit_inter == null or _screen_distance(player.global_position + Vector3(0, 0.5, 0), screen_pos) \
 			< _screen_distance(hit_inter.focus_position(), screen_pos):
 		hit_prop = null
+	if _is_pet_tap(screen_pos, hit_inter if hit_prop != null else null):
+		climb_down()
+		walk_to_pet()
+		last_tap_kind = "pet"
+		print("napautus %d: %s" % [tap_count, last_tap_kind])
+		return last_tap_kind
 	if climbed != null:
 		if hit_prop == climbed.prop() or (hit_prop == null and is_near_player_on_screen(screen_pos)):
 			_use(climbed)
@@ -225,6 +259,38 @@ func tap_at_screen(screen_pos: Vector2) -> String:
 		last_tap_kind = _walk_towards_screen(screen_pos, true)
 	print("napautus %d: %s" % [tap_count, last_tap_kind])
 	return last_tap_kind
+
+
+## Osuuko napautus lemmikkiin (lähempänä lemmikkiä kuin hahmoa tai osuttua esinettä).
+func _is_pet_tap(screen_pos: Vector2, hit_inter: Interactable) -> bool:
+	if pet == null or not pet.is_inside_tree():
+		return false
+	var d := _screen_distance(pet.focus_position(), screen_pos)
+	if d > PET_TAP_RADIUS:
+		return false
+	if d > _screen_distance(player.global_position + Vector3(0, 0.5, 0), screen_pos):
+		return false
+	return hit_inter == null or d < _screen_distance(hit_inter.focus_position(), screen_pos)
+
+
+## Hahmo kävelee lemmikin luo silittämään. Lemmikki odottaa paikallaan.
+func walk_to_pet() -> void:
+	_end_shot()
+	_pending_prop = null
+	pet.wait_for_player()
+	# Hahmo menee lemmikin sivulle (kamerasta katsoen), jotta molemmat näkyvät silityksessä.
+	var to_cam := camera.toward_camera()
+	var side := Vector3(to_cam.y, 0, -to_cam.x).normalized()
+	if side.dot(player.global_position - pet.global_position) < 0.0:
+		side = -side
+	var base := Vector3(pet.global_position.x, 0, pet.global_position.z)
+	var goal := grid.nearest_walkable(base + side * PET_STAND_GAP)
+	if goal.distance_to(base + side * PET_STAND_GAP) > 0.2:
+		goal = grid.nearest_walkable(base - side * PET_STAND_GAP)
+	player.walk_path(grid.find_path(player.global_position, goal))
+	_pending_pet = true
+	if not player.is_walking():
+		_on_player_arrived()
 
 
 func is_near_player_on_screen(screen_pos: Vector2) -> bool:
@@ -282,6 +348,7 @@ func pick(screen_pos: Vector2) -> Dictionary:
 ## Kävelee lähimpään vapaaseen kohtaan. Palauttaa kohdan, johon hahmo on menossa.
 func walk_to(point: Vector3) -> Vector3:
 	_pending_prop = null
+	_pending_pet = false
 	_end_shot()
 	climb_down()
 	var path := grid.find_path(player.global_position, point)
@@ -323,6 +390,7 @@ func stand_point_for(prop: Node3D) -> Vector3:
 
 ## Kävelee esineen viereen. Perillä hahmo käyttää esinettä.
 func walk_to_prop(prop: Node3D) -> void:
+	_pending_pet = false
 	climb_down()
 	_end_shot()
 	var goal := stand_point_for(prop)
@@ -342,6 +410,10 @@ func _prop_of(node: Node) -> Node3D:
 
 
 func _on_player_arrived() -> void:
+	if _pending_pet:
+		_pending_pet = false
+		_pet_the_pet()
+		return
 	if _pending_prop == null:
 		return
 	var prop := _pending_prop
@@ -360,6 +432,20 @@ func _on_player_arrived() -> void:
 		tween.tween_property(visual, "scale", Vector3(1.08, 0.9, 1.08), 0.1)
 		tween.tween_property(visual, "scale", Vector3.ONE, 0.35) \
 				.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+
+
+## Hahmo silittää lemmikkiä, ja kamera tekee lähikuvan.
+func _pet_the_pet() -> void:
+	if pet == null:
+		return
+	player.face_towards(pet.global_position)
+	player.do_action("pet")
+	pet.pet_me()
+	var p := player
+	var a := pet
+	camera.closeup(func() -> Vector3: return (p.global_position + Vector3(0, 0.45, 0)).lerp(
+			a.focus_position(), 0.6), CLOSEUP_MIN_TIME)
+	print("silitys %s %d" % [pet.kind, pet.pet_count])
 
 
 ## Hahmo kiipeää esineen päälle (esim. sängylle).
@@ -479,6 +565,14 @@ func prop_screen_positions() -> Dictionary:
 		if not Rect2(Vector2.ZERO, size).has_point(p):
 			continue  # ruudun ulkopuolella
 		out[String(node.name)] = [p.x / size.x, p.y / size.y]
+	if pet != null and not camera.is_position_behind(pet.focus_position()):
+		var q := camera.unproject_position(pet.focus_position())
+		if Rect2(Vector2.ZERO, size).has_point(q):
+			out["Pet"] = [q.x / size.x, q.y / size.y]
+	if is_instance_valid(picker):
+		for i in 2:
+			var c: Vector2 = picker.card(i)[0]
+			out["Pick_" + PetPicker.KINDS[i]] = [c.x / size.x, c.y / size.y]
 	return out
 
 

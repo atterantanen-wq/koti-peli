@@ -57,6 +57,13 @@ static func shape_mesh(name: String) -> ArrayMesh:
 				var a := TAU * i / 10.0
 				var r := 0.5 if i % 2 == 0 else 0.22
 				outline.append(Vector2(sin(a), cos(a)) * r)
+		"z":
+			# Unen Z-kirjain.
+			outline = PackedVector2Array([
+					Vector2(-0.35, 0.4), Vector2(0.35, 0.4), Vector2(0.35, 0.27),
+					Vector2(-0.1, -0.27), Vector2(0.35, -0.27), Vector2(0.35, -0.4),
+					Vector2(-0.35, -0.4), Vector2(-0.35, -0.27), Vector2(0.1, 0.27),
+					Vector2(-0.35, 0.27)])
 		"note":
 			# Kahdeksasosanuotti: pallo, varsi ja lippu yhtenä ääriviivana.
 			outline = PackedVector2Array([

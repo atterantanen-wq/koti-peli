@@ -30,6 +30,7 @@ var _jump_tween: Tween
 var _pose_tween: Tween
 var _hold := 0.0  # hypyn aikana hahmo ei lähde kävelemään
 var _arms_up := 0.0  # kädet ylhäällä (pomppu, iloinen venytys)
+var _reach := 0.0  # kädet edessä (lemmikin silitys)
 
 @onready var body: Node3D = $Body
 
@@ -196,10 +197,17 @@ func cheer() -> void:
 	_arms_up = 0.5
 
 
-## Esineen pyytämä liike: "hug", "jump", "bounce" tai "cheer".
+## Silitys: hahmo kumartuu ja silittää käsillä edessään olevaa lemmikkiä.
+func pet_animal() -> void:
+	_pose(Vector3(1.04, 0.9, 1.0), 0.45, 1.6)
+	_reach = 1.6
+
+
+## Esineen pyytämä liike: "hug", "jump", "bounce", "cheer" tai "pet".
 func do_action(action: String) -> void:
 	last_action = action
 	match action:
+		"pet": pet_animal()
 		"hug": hug()
 		"jump": jump()
 		"bounce": bounce()
@@ -229,13 +237,16 @@ func _update_limbs(delta: float) -> void:
 	if is_walking() and _hold <= 0.0:
 		swing = sin(_walk_time * _speed * 4.0) * LIMB_SWING
 	_arms_up = maxf(0.0, _arms_up - delta)
+	_reach = maxf(0.0, _reach - delta)
+	# Silittäessä kädet ovat edessä ja liikkuvat edestakaisin.
+	var stroke := -1.1 + sin(_reach * 9.0) * 0.25
 	var raise := 2.4 if _arms_up > 0.0 or is_hopping() else 0.0
 	var k := minf(1.0, delta * 14.0)
 	for i in 2:
 		var side := -1.0 if i == 0 else 1.0
 		var arm := body.get_node_or_null("ArmLeft" if i == 0 else "ArmRight") as Node3D
 		if arm != null:
-			arm.rotation.x = lerpf(arm.rotation.x, swing * side, k)
+			arm.rotation.x = lerpf(arm.rotation.x, stroke if _reach > 0.0 else swing * side, k)
 			arm.rotation.z = lerpf(arm.rotation.z, (0.18 + raise) * side, k)
 		var leg := body.get_node_or_null("LegLeft" if i == 0 else "LegRight") as Node3D
 		if leg != null:

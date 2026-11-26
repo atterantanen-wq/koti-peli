@@ -3,6 +3,7 @@
 // napautus menee peliin asti (peli kirjoittaa konsoliin "napautus N: ...").
 // Lopuksi kokeillaan esineiden temppuja iPhonen tapaisella kosketuksella
 // (iso sormitunniste): sängyllä pomppiminen, siipiotuksen lento ja lammasyövalo.
+// Alussa valitaan lemmikki (kissa) kuvasta, ja lopuksi silitetään sitä.
 // Käyttö: node tools/web_smoke.mjs build/web screenshot.png
 import http from "node:http";
 import fs from "node:fs";
@@ -32,6 +33,15 @@ page.on("console", (m) => { logs.push(m.text()); console.log(`[selain ${m.type()
 page.on("pageerror", (e) => console.log(`[selain virhe] ${e.message}`));
 await page.goto("http://localhost:8060/index.html");
 await page.waitForTimeout(12000);
+// Lemmikin valinta: peli kertoo kuvien paikat (Pick_cat, Pick_dog). Valintaruudun
+// napautus ei saa liikuttaa hahmoa.
+await page.screenshot({ path: out.replace(".png", "-picker.png") });
+const pick = await page.evaluate(() => (window.kotiPeliProps || {}).Pick_cat);
+if (!pick) { console.log("VIRHE: lemmikin valintaa ei näy"); process.exit(1); }
+const vp0 = page.viewportSize();
+await page.touchscreen.tap(pick[0] * vp0.width, pick[1] * vp0.height);
+await page.waitForTimeout(1500);
+const tapsBeforeGame = logs.filter((l) => l.startsWith("napautus ")).length;
 await page.screenshot({ path: out });
 await page.touchscreen.tap(422, 195);
 await page.waitForTimeout(500);
@@ -86,6 +96,12 @@ await page.waitForTimeout(2500);
 await tapProp("SheepLight");   // lammasyövalo: yö
 await page.waitForTimeout(4500);
 await page.screenshot({ path: out.replace(".png", "-night.png") });
+// Aamu takaisin ja lemmikin silitys.
+await tapProp("SheepLight");
+await page.waitForTimeout(3500);
+await tapProp("Pet");
+await page.waitForTimeout(3000);
+await page.screenshot({ path: out.replace(".png", "-pet.png") });
 await browser.close();
 server.close();
 
@@ -108,8 +124,16 @@ if (taps.length < 3) {
 const tricks = logs.filter((l) => l.startsWith("temppu "));
 const count = (name) => tricks.filter((l) => l.startsWith(`temppu ${name} `)).length;
 console.log(`temput: ${tricks.join(", ")}`);
+if (!logs.some((l) => l.trim() === "lemmikki valittu cat") || tapsBeforeGame > 0) {
+  console.log("VIRHE: lemmikin valinta ei toiminut kosketuksella");
+  process.exit(1);
+}
+if (!logs.some((l) => l.startsWith("silitys cat"))) {
+  console.log("VIRHE: lemmikin silitys ei toiminut");
+  process.exit(1);
+}
 if (count("Bed") < 1 || count("WingCreature") < 2 || count("SheepLight") < 1) {
   console.log("VIRHE: esineiden temput eivät käynnistyneet kosketuksella");
   process.exit(1);
 }
-console.log("SELAINTESTI OK: 3D-kohtaus piirtyy, napautukset ja esineiden temput toimivat");
+console.log("SELAINTESTI OK: 3D-kohtaus piirtyy, lemmikin valinta, napautukset, temput ja silitys toimivat");
