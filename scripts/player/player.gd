@@ -45,6 +45,24 @@ func walk_path(path: PackedVector3Array) -> void:
 	_speed = RUN_SPEED if path_length(path) > RUN_DISTANCE else WALK_SPEED
 
 
+## Pukee hahmon: "girl" tai "boy" ja asu (katso PlayerArt.OUTFITS). Hahmo ilahtuu
+## uusista vaatteista.
+func dress_up(hero: String, outfit: String) -> void:
+	var art := body as PlayerArt
+	if art == null:
+		return
+	art.dress_up(hero, outfit)
+	cheer()
+
+
+func hero() -> String:
+	return (body as PlayerArt).hero if body is PlayerArt else ""
+
+
+func outfit() -> String:
+	return (body as PlayerArt).outfit if body is PlayerArt else ""
+
+
 func stop() -> void:
 	_path = PackedVector3Array()
 	_next = 0

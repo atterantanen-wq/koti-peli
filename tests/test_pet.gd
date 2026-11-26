@@ -31,8 +31,9 @@ func _flat(a: Vector3, b: Vector3) -> float:
 
 func test_picker_shows_cat_and_dog_pictures() -> void:
 	var main := _spawn_main("")
+	main.choose_hero("girl")
 	var picker := main.picker as PetPicker
-	check(picker != null and picker.is_inside_tree(), "valintaruutu näkyy pelin alussa")
+	check(picker != null and picker.is_inside_tree(), "lemmikin valinta näkyy hahmon valinnan jälkeen")
 	check(main.pet == null, "lemmikkiä ei ole ennen valintaa")
 	check_eq(picker.kind_at(picker.card(0)[0]), "cat", "vasemmalla on kissa")
 	check_eq(picker.kind_at(picker.card(1)[0]), "dog", "oikealla on koira")
