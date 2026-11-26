@@ -109,7 +109,10 @@ func test_wardrobe_changes_clothes_mid_game() -> void:
 	# Napautus valikon ulkopuolelle sulkee sen.
 	_tap(w, Vector2(640, 200))
 	check(not w.is_open, "napautus muualle sulkee vaatekaapin")
+	check(w._has_point(Vector2(640, 200)), "sulkevan napautuksen hiirikopio ei mene peliin")
 	check_eq(main.tap_count, 0, "sulkeva napautus ei liikuta hahmoa")
+	w._closed_at = -10.0
+	check(not w._has_point(Vector2(640, 200)), "hetken päästä napautukset menevät taas peliin")
 	main.free()
 
 

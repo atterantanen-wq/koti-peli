@@ -21,6 +21,9 @@ var _time := 0.0
 var _pop := {}  # kortin indeksi -> pomppuaika
 var _last_press_class := ""
 var _last_press_time := -1.0
+## Sulkemisen jälkeen hetken ajan napautukset otetaan vielä itselle, koska sama
+## napautus tulee selaimessa sekä kosketuksena että hiirenä.
+var _closed_at := -10.0
 
 
 func _ready() -> void:
@@ -69,7 +72,13 @@ func open() -> void:
 
 
 func close() -> void:
+	if is_open:
+		_closed_at = _now()
 	is_open = false
+
+
+func _now() -> float:
+	return Time.get_ticks_msec() / 1000.0
 
 
 ## Näyttää valituksi hahmon nykyiset valinnat.
@@ -98,11 +107,14 @@ func thing_at(pos: Vector2) -> String:
 func press(pos: Vector2) -> bool:
 	var thing := thing_at(pos)
 	if thing == "button":
-		is_open = not is_open
+		if is_open:
+			close()
+		else:
+			open()
 		return true
 	if not is_open:
-		return false
-	if thing == "" :
+		return _now() - _closed_at < 0.3
+	if thing == "":
 		close()
 		return true
 	if thing == "panel":
@@ -129,7 +141,7 @@ func is_selected(i: int) -> bool:
 
 ## Suljettuna vain paitanappi ottaa napautuksia, muu ruutu menee peliin.
 func _has_point(point: Vector2) -> bool:
-	return is_open or thing_at(point) == "button"
+	return is_open or thing_at(point) == "button" or _now() - _closed_at < 0.3
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -144,7 +156,7 @@ func _gui_input(event: InputEvent) -> void:
 		return
 	accept_event()
 	# Sama napautus voi tulla sekä kosketuksena että hiirenä: käsitellään vain kerran.
-	var now := Time.get_ticks_msec() / 1000.0
+	var now := _now()
 	var cls := event.get_class()
 	if cls != _last_press_class and now - _last_press_time < 0.25:
 		return
