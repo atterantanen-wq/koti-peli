@@ -58,8 +58,7 @@ func _ready() -> void:
 
 	# Kasvot: isot silmät kiiltopisteineen, posket, nenä ja hymy.
 	var eye := ArtKit.material(EYE, 0.3)
-	var shine := ArtKit.material(Color.WHITE, 0.2)
-	shine.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var shine := ArtKit.shine_material()
 	for side in [-1.0, 1.0]:
 		var p := Vector3(0.075 * side, 0.01, HEAD_R - 0.025)
 		_part(head, "Eye", _sphere(0.034), p, eye, Vector3(0.9, 1.25, 0.6))
@@ -82,40 +81,20 @@ func _pivot(pivot_name: String, pos: Vector3) -> Node3D:
 
 func _part(parent: Node3D, part_name: String, mesh: Mesh, pos: Vector3, mat: Material,
 		scl := Vector3.ONE) -> MeshInstance3D:
-	var m := MeshInstance3D.new()
-	m.name = part_name
-	m.mesh = mesh
-	m.position = pos
-	m.scale = scl
-	m.material_override = mat
-	parent.add_child(m)
-	return m
+	return ArtKit.part(parent, part_name, mesh, pos, mat, scl)
 
 
 func _tube(parent: Node3D, part_name: String, points: PackedVector3Array, radius: float,
 		mat: Material) -> void:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	ArtKit.add_tube(st, points, radius, 6)
-	_part(parent, part_name, ArtKit.commit(st), Vector3.ZERO, mat)
+	ArtKit.tube_part(parent, part_name, points, radius, mat)
 
 
 static func _sphere(r: float) -> SphereMesh:
-	var s := SphereMesh.new()
-	s.radius = r
-	s.height = r * 2.0
-	s.radial_segments = 16
-	s.rings = 8
-	return s
+	return ArtKit.sphere(r)
 
 
 static func _capsule(r: float, h: float) -> CapsuleMesh:
-	var c := CapsuleMesh.new()
-	c.radius = r
-	c.height = h
-	c.radial_segments = 14
-	c.rings = 4
-	return c
+	return ArtKit.capsule(r, h)
 
 
 static func _torus(inner: float, outer: float) -> TorusMesh:

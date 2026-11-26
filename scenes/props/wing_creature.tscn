@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/props/reactions/hop_reaction.gd" id="6_hop"]
 [ext_resource type="Script" path="res://scripts/props/reactions/float_effect_reaction.gd" id="7_float"]
 [ext_resource type="Script" path="res://scripts/props/reactions/fly_path_reaction.gd" id="8_fly"]
+[ext_resource type="Script" path="res://scripts/art/wing_creature_art.gd" id="90_art"]
 
 [sub_resource type="BoxShape3D" id="Shape_creature"]
 size = Vector3(0.34, 0.34, 0.3)
@@ -122,6 +123,7 @@ focus_height = 0.17
 
 [node name="Visual" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14, 0)
+script = ExtResource("90_art")
 
 [node name="Body" type="MeshInstance3D" parent="Visual"]
 mesh = SubResource("Mesh_body")

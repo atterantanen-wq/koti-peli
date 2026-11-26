@@ -17,6 +17,7 @@
 [ext_resource type="Script" path="res://scripts/props/reactions/fly_path_reaction.gd" id="15_fly"]
 [ext_resource type="Script" path="res://scripts/props/reactions/call_group_reaction.gd" id="16_call"]
 [ext_resource type="Script" path="res://scripts/art/bed_art.gd" id="17_bedart"]
+[ext_resource type="Script" path="res://scripts/art/room_props_art.gd" id="18_propart"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(6, 0.2, 5)
@@ -537,6 +538,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
 shape = SubResource("BoxShape3D_19")
 
 [node name="Visual" type="Node3D" parent="LeftWall"]
+script = ExtResource("18_propart")
+kind = "shelf"
 
 [node name="Wall" type="MeshInstance3D" parent="LeftWall/Visual"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
@@ -594,6 +597,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_29")
 
 [node name="Visual" type="Node3D" parent="ToyBox"]
+script = ExtResource("18_propart")
+kind = "toybox"
 
 [node name="Box" type="MeshInstance3D" parent="ToyBox/Visual"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
@@ -639,6 +644,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.175, 0)
 shape = SubResource("BoxShape3D_32")
 
 [node name="Visual" type="Node3D" parent="Basket"]
+script = ExtResource("18_propart")
+kind = "basket"
 
 [node name="Basket" type="MeshInstance3D" parent="Basket/Visual"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.175, 0)
@@ -653,6 +660,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
 shape = SubResource("BoxShape3D_34")
 
 [node name="Visual" type="Node3D" parent="Dresser"]
+script = ExtResource("18_propart")
+kind = "dresser"
 
 [node name="Body" type="MeshInstance3D" parent="Dresser/Visual"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
@@ -682,6 +691,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
 shape = SubResource("BoxShape3D_41")
 
 [node name="Visual" type="Node3D" parent="SheepLight"]
+script = ExtResource("18_propart")
+kind = "sheep_light"
 
 [node name="Stool" type="MeshInstance3D" parent="SheepLight/Visual"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
@@ -720,6 +731,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.28, 0.8, -2.05)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, -2.5)
 
 [node name="Rugs" type="Node3D" parent="."]
+script = ExtResource("18_propart")
+kind = "rugs"
 
 [node name="PinkRug" type="MeshInstance3D" parent="Rugs"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.005, 0.3)

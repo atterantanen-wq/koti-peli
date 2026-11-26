@@ -26,7 +26,7 @@ static func soft_box(size: Vector3, roundness := 0.35, segments := 14) -> ArrayM
 		for c in cols:
 			var a := r * (cols + 1) + c
 			var b := a + cols + 1
-			for i in [a, b, a + 1, a + 1, b, b + 1]:
+			for i in [a, a + 1, b, a + 1, b + 1, b]:
 				var v: Vector3 = verts[i]
 				st.set_uv(Vector2(v.x / size.x + 0.5, v.z / size.z + 0.5))
 				st.add_vertex(v)
@@ -195,3 +195,103 @@ static func in_star(p: Vector2, radius: float) -> bool:
 static func commit(st: SurfaceTool) -> ArrayMesh:
 	st.index()
 	return st.commit()
+
+
+## Pyöreä pallo (sileä, sopiva pehmoleluille).
+static func sphere(r: float, segments := 16) -> SphereMesh:
+	var s := SphereMesh.new()
+	s.radius = r
+	s.height = r * 2.0
+	s.radial_segments = segments
+	s.rings = maxi(4, segments / 2)
+	return s
+
+
+static func capsule(r: float, h: float) -> CapsuleMesh:
+	var c := CapsuleMesh.new()
+	c.radius = r
+	c.height = h
+	c.radial_segments = 14
+	c.rings = 4
+	return c
+
+
+static func cylinder(r: float, h: float, segments := 16) -> CylinderMesh:
+	var c := CylinderMesh.new()
+	c.top_radius = r
+	c.bottom_radius = r
+	c.height = h
+	c.radial_segments = segments
+	c.rings = 1
+	return c
+
+
+## Lisää osan (kappale + materiaali) annetun solmun alle.
+static func part(parent: Node3D, part_name: String, mesh: Mesh, pos: Vector3, mat: Material,
+		scl := Vector3.ONE) -> MeshInstance3D:
+	var m := MeshInstance3D.new()
+	m.name = part_name
+	m.mesh = mesh
+	m.position = pos
+	m.scale = scl
+	m.material_override = mat
+	parent.add_child(m)
+	return m
+
+
+## Lisää putken omaksi osakseen (esim. hymy tai kihara).
+static func tube_part(parent: Node3D, part_name: String, points: PackedVector3Array, radius: float,
+		mat: Material) -> MeshInstance3D:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	add_tube(st, points, radius, 6)
+	return part(parent, part_name, commit(st), Vector3.ZERO, mat)
+
+
+## Hymy: kaari kasvojen etupuolella (center = suun keskikohta).
+static func smile(center: Vector3, width: float) -> PackedVector3Array:
+	return arc(center + Vector3(0, width * 0.55, 0), Vector3.RIGHT, Vector3.UP, width * 0.6,
+			PI * 1.2, PI * 1.8, 10)
+
+
+## Kiiltopiste silmään: valkoinen, ei varjostusta.
+static func shine_material() -> StandardMaterial3D:
+	var m := material(Color.WHITE, 0.2)
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	return m
+
+
+## Pystysuuntainen liukuväri (esim. sateenkaarenhohtoiset siivet).
+static func gradient_image(colors: Array[Color], size := 32) -> Image:
+	var img := Image.create(4, size, false, Image.FORMAT_RGB8)
+	for y in size:
+		var t := float(y) / (size - 1) * (colors.size() - 1)
+		var i := mini(int(t), colors.size() - 2)
+		var c: Color = colors[i].lerp(colors[i + 1], t - i)
+		for x in 4:
+			img.set_pixel(x, y, c)
+	return img
+
+
+## Lisää laatikon SurfaceTooliin (monta pientä laatikkoa voi piirtää yhdellä kertaa).
+static func add_box(st: SurfaceTool, center: Vector3, size: Vector3) -> void:
+	var h := size * 0.5
+	for axis in 3:
+		for sgn in [-1.0, 1.0]:
+			var n := Vector3.ZERO
+			n[axis] = sgn
+			var u := Vector3.ZERO
+			u[(axis + 1) % 3] = h[(axis + 1) % 3]
+			var v := Vector3.ZERO
+			v[(axis + 2) % 3] = h[(axis + 2) % 3]
+			var c := center + n * h[axis]
+			var a := c - u - v
+			var b := c + u - v
+			var d := c + u + v
+			var e := c - u + v
+			if sgn > 0:
+				_tri(st, a, n, d, n, b, n)
+				_tri(st, a, n, e, n, d, n)
+			else:
+				_tri(st, a, n, b, n, d, n)
+				_tri(st, a, n, d, n, e, n)

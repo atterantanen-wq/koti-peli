@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/props/reactions/squash_reaction.gd" id="5_squash"]
 [ext_resource type="Script" path="res://scripts/props/reactions/float_effect_reaction.gd" id="6_float"]
 [ext_resource type="Script" path="res://scripts/props/reactions/hop_reaction.gd" id="7_hop"]
+[ext_resource type="Script" path="res://scripts/art/dollhouse_art.gd" id="90_art"]
 
 [sub_resource type="BoxShape3D" id="Shape_house"]
 size = Vector3(0.62, 0.62, 0.46)
@@ -153,6 +154,7 @@ variants = Array[ExtResource("2_set")]([SubResource("Set_lights"), SubResource("
 focus_height = 0.3
 
 [node name="Visual" type="Node3D" parent="."]
+script = ExtResource("90_art")
 
 [node name="House" type="MeshInstance3D" parent="Visual"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.225, 0)
