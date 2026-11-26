@@ -1,0 +1,154 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/props/interactable.gd" id="1_inter"]
+[ext_resource type="Script" path="res://scripts/props/reactions/reaction_set.gd" id="2_set"]
+[ext_resource type="Script" path="res://scripts/props/reactions/reaction.gd" id="3_reaction"]
+[ext_resource type="Script" path="res://scripts/props/reactions/flap_reaction.gd" id="4_flap"]
+[ext_resource type="Script" path="res://scripts/props/reactions/float_effect_reaction.gd" id="5_float"]
+[ext_resource type="Script" path="res://scripts/props/reactions/color_cycle_reaction.gd" id="6_color"]
+
+[sub_resource type="BoxShape3D" id="Shape_bunting"]
+size = Vector3(1.8, 0.4, 0.12)
+
+[sub_resource type="StandardMaterial3D" id="Mat_string"]
+albedo_color = Color(0.95, 0.93, 0.9, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_pink"]
+albedo_color = Color(1, 0.75, 0.8, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_mint"]
+albedo_color = Color(0.7, 0.92, 0.8, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_yellow"]
+albedo_color = Color(1, 0.92, 0.6, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_lilac"]
+albedo_color = Color(0.82, 0.75, 0.95, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="Mesh_string"]
+size = Vector3(1.75, 0.01, 0.01)
+
+[sub_resource type="PrismMesh" id="Mesh_flag"]
+size = Vector3(0.17, 0.2, 0.015)
+
+[sub_resource type="Resource" id="R_wave"]
+script = ExtResource("4_flap")
+parts = Array[NodePath]([NodePath("Visual/Flag0"), NodePath("Visual/Flag1"), NodePath("Visual/Flag2"), NodePath("Visual/Flag3"), NodePath("Visual/Flag4"), NodePath("Visual/Flag5"), NodePath("Visual/Flag6")])
+axis = Vector3(1, 0, 0)
+degrees = 35.0
+flaps = 4
+flap_time = 0.4
+mirror = false
+wave = 0.7
+
+[sub_resource type="Resource" id="R_chime"]
+script = ExtResource("5_float")
+shape = "note"
+color = Color(0.7, 0.6, 0.95, 1)
+count = 2
+offset = Vector3(0, 1.95, 0.25)
+spread = 0.4
+rise = 0.5
+
+[sub_resource type="Resource" id="R_colors"]
+script = ExtResource("6_color")
+parts = Array[NodePath]([NodePath("Visual/Flag0/Mesh"), NodePath("Visual/Flag1/Mesh"), NodePath("Visual/Flag2/Mesh"), NodePath("Visual/Flag3/Mesh"), NodePath("Visual/Flag4/Mesh"), NodePath("Visual/Flag5/Mesh"), NodePath("Visual/Flag6/Mesh")])
+colors = Array[Color]([Color(1, 0.75, 0.8, 1), Color(0.7, 0.92, 0.8, 1), Color(1, 0.92, 0.6, 1), Color(0.82, 0.75, 0.95, 1), Color(0.65, 0.82, 1, 1)])
+step_time = 0.35
+stagger = 0.12
+
+[sub_resource type="Resource" id="R_breeze"]
+script = ExtResource("4_flap")
+parts = Array[NodePath]([NodePath("Visual/Flag0"), NodePath("Visual/Flag1"), NodePath("Visual/Flag2"), NodePath("Visual/Flag3"), NodePath("Visual/Flag4"), NodePath("Visual/Flag5"), NodePath("Visual/Flag6")])
+axis = Vector3(1, 0, 0)
+degrees = 20.0
+flaps = 5
+flap_time = 0.45
+mirror = false
+wave = 0.5
+
+[sub_resource type="Resource" id="Set_wave"]
+script = ExtResource("2_set")
+reactions = Array[ExtResource("3_reaction")]([SubResource("R_wave"), SubResource("R_chime")])
+
+[sub_resource type="Resource" id="Set_colors"]
+script = ExtResource("2_set")
+reactions = Array[ExtResource("3_reaction")]([SubResource("R_colors"), SubResource("R_breeze"), SubResource("R_chime")])
+
+[node name="Bunting" type="StaticBody3D" groups=["prop"]]
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0.06)
+shape = SubResource("Shape_bunting")
+
+[node name="Interactable" type="Node" parent="."]
+script = ExtResource("1_inter")
+variants = Array[ExtResource("2_set")]([SubResource("Set_wave"), SubResource("Set_colors")])
+focus_height = 2.2
+
+[node name="Visual" type="Node3D" parent="."]
+
+[node name="String" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.32, 0.1)
+mesh = SubResource("Mesh_string")
+surface_material_override/0 = SubResource("Mat_string")
+
+[node name="Flag0" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.75, 2.32, 0.1)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/Flag0"]
+transform = Transform3D(-1, 0, 0, 0, -1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("Mesh_flag")
+surface_material_override/0 = SubResource("Mat_pink")
+
+[node name="Flag1" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 2.305, 0.1)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/Flag1"]
+transform = Transform3D(-1, 0, 0, 0, -1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("Mesh_flag")
+surface_material_override/0 = SubResource("Mat_mint")
+
+[node name="Flag2" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 2.29, 0.1)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/Flag2"]
+transform = Transform3D(-1, 0, 0, 0, -1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("Mesh_flag")
+surface_material_override/0 = SubResource("Mat_yellow")
+
+[node name="Flag3" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 2.275, 0.1)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/Flag3"]
+transform = Transform3D(-1, 0, 0, 0, -1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("Mesh_flag")
+surface_material_override/0 = SubResource("Mat_lilac")
+
+[node name="Flag4" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 2.29, 0.1)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/Flag4"]
+transform = Transform3D(-1, 0, 0, 0, -1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("Mesh_flag")
+surface_material_override/0 = SubResource("Mat_pink")
+
+[node name="Flag5" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 2.305, 0.1)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/Flag5"]
+transform = Transform3D(-1, 0, 0, 0, -1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("Mesh_flag")
+surface_material_override/0 = SubResource("Mat_mint")
+
+[node name="Flag6" type="Node3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.75, 2.32, 0.1)
+
+[node name="Mesh" type="MeshInstance3D" parent="Visual/Flag6"]
+transform = Transform3D(-1, 0, 0, 0, -1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("Mesh_flag")
+surface_material_override/0 = SubResource("Mat_yellow")

@@ -58,6 +58,7 @@ godot --headless --export-release "Web" build/web/index.html  # tee selainversio
 Esine on `StaticBody3D` ryhmässä `prop`, ja sen kuva on `Visual`-solmun alla.
 Lisää sille lapseksi `Interactable` (`scripts/props/interactable.gd`) ja valitse
 temput (`variants`) valmiista palikoista `scripts/props/reactions/`:
-pomppu, litistys, pyörähdys, siipien lepatus, lento reittiä pitkin, sydämet/tähdet
+pomppu, litistys, pyörähdys, siipien lepatus, lento reittiä pitkin, sydämet/tähdet,
+piilossa olevan osan esiin ponnahdus, värien vaihto, päivä/yö (ryhmäkutsu)
 ja hahmon liike (halaus, hyppy, pomppu). Temput vuorottelevat napautus kerrallaan.
-Esimerkit: `scenes/props/panda.tscn`, `scenes/props/wing_creature.tscn`.
+Esimerkit: `scenes/props/` (panda, siipiotus, juna, nukkekoti, viirinauha).
